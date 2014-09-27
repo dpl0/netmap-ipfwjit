@@ -26,7 +26,8 @@ LLVMValueRef Func;
 
 // We'll store the BasicBlocks for each rule here.
 int rulenumber = 0;
-LLVMBasicBlockRef **rules;
+int nrules = 0;
+LLVMBasicBlockRef *rules;
 
 // Vars Types
 LLVMTypeRef Int8Ty;
@@ -255,10 +256,10 @@ LLVMBasicBlockRef *
 nextRule()
 {
 	int nextn = rulenumber + 1;
-	if (nextn >= rules.size())
-		return (End);
+	if (nextn > nrules)
+		return (&End);
 	else
-		return (rules[nextn]);
+		return (&rules[nextn]);
 }
 
 // Create the needed variables to perform pfil.
@@ -905,6 +906,7 @@ startcompiler(int rulesnumber)
 	allocaAndInit();
 
 	// Initialize the array.
+	nrules = rulesnumer;
 	rules = calloc(rulesnumber, sizeof(LLVMBasicBlockRef));
 	for (i = 0; i < rulesnumber; i++)
 		rules[i] = LLVMAppendBasicBlockInContext(Con, "rule", Func);
