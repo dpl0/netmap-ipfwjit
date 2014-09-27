@@ -267,387 +267,373 @@ void
 setEnv()
 {
 	// Get function arguments.
-	// (struct ip_fw_args *, struct ip_fw_chain *)
-	auto& arglist = Func->getArgumentList();
-
 	// Error
-	if (arglist.size() != 2)
+	if (LLVMCountParams(Func) != 2)
 		err(1, "Compilation error: no correct parameters\n");
 
-	Args = &arglist.front();
-	Chain = &arglist.back();
+	// (struct ip_fw_args *, struct ip_fw_chain *)
+	Args = LLVMGetParams(Func, 0);
+	Chain = LLVMGetParams(Func, 1);
 
 	// Get Type objects
-	Int8Ty = Type::getInt8Ty(Con);
-	Int16Ty = Type::getInt16Ty(Con);
-	Int32Ty = Type::getInt32Ty(Con);
-	Int64Ty = Type::getInt64Ty(Con);
-	Int8PtrTy = PointerType::getUnqual(Int8Ty);
-	Int16PtrTy = PointerType::getUnqual(Int16Ty);
+	Int8Ty = LLVMInt8TypeInContext(Con);
+	Int16Ty = LLVMInt16TypeInContext(Con);
+	Int32Ty = LLVMInt32TypeInContext(Con);
+	Int64Ty = LLVMInt64TypeInContext(Con);
+
+	Int8PtrTy = LLVMPointerType(Int8Ty, 0);
+	Int16PtrTy = LLVMPointerType(Int16Ty, 0);
 
 	// Get StrucType from bitcode.
-	MbufTy = mod->getTypeByName("struct.mbuf");
+	MbufTy = LLVMGetTypeByName(Mod, "struct.mbuf");
 	if (MbufTy == NULL)
 		err(1, "bitcode fault: struct.mbuf");
-	IfnetTy = mod->getTypeByName("struct.ifnet");
+	IfnetTy = LLVMGetTypeByName(Mod, "struct.IfnetTy");
 	if (IfnetTy == NULL)
 		err(1, "bitcode fault: struct.ifnet");
-	In_addrTy = mod->getTypeByName("struct.in_addr");
+	In_addrTy = LLVMGetTypeByName(Mod, "struct.in_addr");
 	if (In_addrTy == NULL)
 		err(1, "bitcode fault: struct.in_addr");
-	IpTy = mod->getTypeByName("struct.ip");
+	IpTy = LLVMGetTypeByName(Mod, "struct.ip");
 	if (IpTy == NULL)
 		err(1, "bitcode fault: struct.ip");
-	Ip_fw_argsTy = mod->getTypeByName("struct.ip_fw_args");
+	Ip_fw_argsTy = LLVMGetTypeByName(Mod, "struct.ip_fw_args");
 	if (Ip_fw_argsTy == NULL)
 		err(1, "bitcode fault: struct.ip_fw_args");
-	Ip_fw_chainTy = mod->getTypeByName("struct.ip_fw_chain");
+	Ip_fw_chainTy = LLVMGetTypeByName(Mod, "struct.ip_fw_chain");
 	if (Ip_fw_chainTy == NULL)
 		err(1, "bitcode fault: struct.ip_fw_chain");
-	Ip_fwTy = mod->getTypeByName("struct.ip_fw");
+	Ip_fwTy = LLVMGetTypeByName(Mod, "struct.ip_fw");
 	if (Ip_fwTy == NULL)
 		err(1, "bitcode fault: struct.ip_fw");
-	Ipfw_insnTy = mod->getTypeByName("struct._ipfw_insn");
+	Ipfw_insnTy = LLVMGetTypeByName(Mod, "struct._ipfw_insn");
 	if (Ipfw_insnTy == NULL)
 		err(1, "bitcode fault: struct._ipfw_insn");
-	IpfwInsnU16Ty = mod->getTypeByName("struct._ipfw_insn_u16");
+	IpfwInsnU16Ty = LLVMGetTypeByName(Mod, "struct._ipfw_insn_u16");
 	if (IpfwInsnU16Ty == NULL)
 		err(1, "bitcode fault: struct._ipfw_insn_u16");
-	IpfwInsnIpTy = mod->getTypeByName("struct._ipfw_insn_ip");
+	IpfwInsnIpTy = LLVMGetTypeByName(Mod, "struct._ipfw_insn_ip");
 	if (IpfwInsnIpTy == NULL)
 		err(1, "bitcode fault: struct._ipfw_insn_ip");
-	Ipfw_insn_ifTy = mod->getTypeByName("struct._ipfw_insn_if");
+	Ipfw_insn_ifTy = LLVMGetTypeByName(Mod, "struct._ipfw_insn_if");
 	if (Ipfw_insn_ifTy == NULL)
 		err(1, "bitcode fault: struct._ipfw_insn_if");
-	Ipfw_dyn_ruleTy = mod->getTypeByName("struct._ipfw_dyn_rule");
+	Ipfw_dyn_ruleTy = LLVMGetTypeByName(Mod, "struct._ipfw_dyn_rule");
 	if (Ipfw_dyn_ruleTy == NULL)
 		err(1, "bitcode fault: struct._ipfw_dyn_rule");
 
 	// Create Pointer to StructType types.
-	MbufPtrTy = PointerType::getUnqual(MbufTy);
-	IfnetPtrTy = PointerType::getUnqual(IfnetTy);
-	In_addrPtrTy = PointerType::getUnqual(In_addrTy);
-	IpPtrTy = PointerType::getUnqual(IpTy);
-	Ip_fw_argsPtrTy = PointerType::getUnqual(Ip_fw_argsTy);
-	Ip_fw_chainPtrTy = PointerType::getUnqual(Ip_fw_chainTy);
-	Ip_fwPtrTy = PointerType::getUnqual(Ip_fwTy);
-	Ipfw_insnPtrTy = PointerType::getUnqual(Ipfw_insnTy);
-	IpfwInsnU16PtrTy = PointerType::getUnqual(IpfwInsnU16Ty);
-	IpfwInsnIpPtrTy = PointerType::getUnqual(IpfwInsnIpTy);
-	Ipfw_insn_ifPtrTy = PointerType::getUnqual(Ipfw_insn_ifTy);
-	Ipfw_dyn_rulePtrTy = PointerType::getUnqual(Ipfw_dyn_ruleTy);
+	MbufPtrTy = LLVMPointerType(MbufTy, 0);
+	IfnetPtrTy = LLVMPointerType(IfnetTy, 0);
+	In_addrPtrTy = LLVMPointerType(In_addrTy, 0);
+	IpPtrTy = LLVMPointerType(IpTy, 0);
+	Ip_fw_argsPtrTy = LLVMPointerType(Ip_fw_argsTy, 0);
+	Ip_fw_chainPtrTy = LLVMPointerType(Ip_fw_chainTy, 0);
+	Ip_fwPtrTy = LLVMPointerType(Ip_fwTy, 0);
+	Ipfw_insnPtrTy = LLVMPointerType(Ipfw_insnTy, 0);
+	IpfwInsnU16PtrTy = LLVMPointerType(IpfwInsnU16Ty, 0);
+	IpfwInsnIpPtrTy = LLVMPointerType(IpfwInsnIpTy, 0);
+	Ipfw_insn_ifPtrTy = LLVMPointerType(Ipfw_insn_ifTy, 0);
+	Ipfw_dyn_rulePtrTy = LLVMPointerType(Ipfw_dyn_ruleTy, 0);
 
 	// Get Function defs from bitcode.
 	// All of them are auxiliary functions.
-	InspectPkt = mod->getFunction("inspect_pkt");
+	InspectPkt = LLVMGetTypeByName(Mod, "inspect_pkt");
 	if (InspectPkt == NULL)
 		err(1, "bitcode fault: inspect_pkt");
-	IsIcmpQuery = mod->getFunction("is_icmp_query");
+	IsIcmpQuery = LLVMGetTypeByName(Mod, "is_icmp_query");
 	if (IsIcmpQuery == NULL)
 		err(1, "bitcode fault: is_icmp_query");
-	FlagsMatch = mod->getFunction("flags_match");
+	FlagsMatch = LLVMGetTypeByName(Mod, "flags_match");
 	if (FlagsMatch == NULL)
 		err(1, "bitcode fault: flags_match");
-	IpoptsMatch = mod->getFunction("ipopts_match");
+	IpoptsMatch = LLVMGetTypeByName(Mod, "ipopts_match");
 	if (IpoptsMatch == NULL)
 		err(1, "bitcode fault: ipopts_match");
-	TcpoptsMatch = mod->getFunction("tcpopts_match");
+	TcpoptsMatch = LLVMGetTypeByName(Mod, "tcpopts_match");
 	if (TcpoptsMatch == NULL)
 		err(1, "bitcode fault: tcpopts_match");
-	IfaceMatch = mod->getFunction("iface_match");
+	IfaceMatch = LLVMGetTypeByName(Mod, "iface_match");
 	if (IfaceMatch == NULL)
 		err(1, "bitcode fault: iface_match");
-	VerifyPath = mod->getFunction("verify_path");
+	VerifyPath = LLVMGetTypeByName(Mod, "verify_path");
 	if (VerifyPath == NULL)
 		err(1, "bitcode fault: verify_path");
 
 #ifdef INET6
-	Icmp6typeMatch = mod->getFunction("icmp6type_match");
+	Icmp6typeMatch = LLVMGetTypeByName(Mod, "icmp6type_match");
 	if (Icmp6typeMatch == NULL)
 		err(1, "bitcode fault: icmp6type_match");
-	SearchIp6AddrNet = mod->getFunction("search_ip6_addr_net");
+	SearchIp6AddrNet = LLVMGetTypeByName(Mod, "search_ip6_addr_net");
 	if (SearchIp6AddrNet == NULL)
 		err(1, "bitcode fault: search_ip6_addr_net");
-	Flow6idMatch = mod->getFunction("flow6id_match");
+	Flow6idMatch = LLVMGetTypeByName(Mod, "flow6id_match");
 	if (Flow6idMatch == NULL)
 		err(1, "bitcode fault: flow6id_match");
-	VerifyPath6 = mod->getFunction("verify_path6");
+	VerifyPath6 = LLVMGetTypeByName(Mod, "verify_path6");
 	if (VerifyPath6 == NULL)
 		err(1, "bitcode fault: verify_path6");
-	IsIcmp6Query = mod->getFunction("is_icmp6_query");
+	IsIcmp6Query = LLVMGetTypeByName(Mod, "is_icmp6_query");
 	if (IsIcmp6Query == NULL)
 		err(1, "bitcode fault: is_icmp6_query");
-	SendReject6 = mod->getFunction("send_reject6");
+	SendReject6 = LLVMGetTypeByName(Mod, "send_reject6");
 	if (SendReject6 == NULL)
 		err(1, "bitcode fault: send_reject6");
 #endif /* INET6 */
 
-	SendReject = mod->getFunction("send_reject");
+	SendReject = LLVMGetTypeByName(Mod, "send_reject");
 	if (SendReject == NULL)
 		err(1, "bitcode fault: send_reject");
-	SetMatch = mod->getFunction("set_match");
+	SetMatch = LLVMGetTypeByName(Mod, "set_match");
 	if (SetMatch == NULL)
 		err(1, "bitcode fault: set_match");
-	JumpFast = mod->getFunction("jump_fast");
+	JumpFast = LLVMGetTypeByName(Mod, "jump_fast");
 	if (JumpFast == NULL)
 		err(1, "bitcode fault: jump_fast");
 
 	// Functions declared at bitcode.
-	PrintfFunc = mod->getFunction("printf");
+	PrintfFunc = LLVMGetTypeByName(Mod, "printf");
 	if (PrintfFunc == NULL)
 		err(1, "bitcode fault: printf");
-	IpfwFindRule = mod->getFunction("ipfw_find_rule");
+	IpfwFindRule = LLVMGetTypeByName(Mod, "ipfw_find_rule");
 	if (IpfwFindRule == NULL)
 		err(1, "bitcode fault: ipfw_find_rule");
 
 	// Load the rules
-	RuleNop = mod->getFunction("rule_nop");
+	RuleNop = LLVMGetTypeByName(Mod, "rule_nop");
 	if (RuleNop  == NULL)
 		err(1, "bitcode fault: RuleNop ");
-	RuleForwardMac = mod->getFunction("rule_forward_mac");
+	RuleForwardMac = LLVMGetTypeByName(Mod, "rule_forward_mac");
 	if (RuleForwardMac  == NULL)
 		err(1, "bitcode fault: RuleForwardMac ");
-	RuleJail = mod->getFunction("rule_jail");
+	RuleJail = LLVMGetTypeByName(Mod, "rule_jail");
 	if (RuleJail  == NULL)
 		err(1, "bitcode fault: RuleJail ");
-	RuleRecv = mod->getFunction("rule_recv");
+	RuleRecv = LLVMGetTypeByName(Mod, "rule_recv");
 	if (RuleRecv  == NULL)
 		err(1, "bitcode fault: RuleRecv ");
-	RuleXmit = mod->getFunction("rule_xmit");
+	RuleXmit = LLVMGetTypeByName(Mod, "rule_xmit");
 	if (RuleXmit  == NULL)
 		err(1, "bitcode fault: RuleXmit ");
-	RuleVia = mod->getFunction("rule_via");
+	RuleVia = LLVMGetTypeByName(Mod, "rule_via");
 	if (RuleVia  == NULL)
 		err(1, "bitcode fault: RuleVia ");
-	RuleMacaddr2 = mod->getFunction("rule_macaddr2");
+	RuleMacaddr2 = LLVMGetTypeByName(Mod, "rule_macaddr2");
 	if (RuleMacaddr2  == NULL)
 		err(1, "bitcode fault: RuleMacaddr2 ");
-	RuleMacType = mod->getFunction("rule_mac_type");
+	RuleMacType = LLVMGetTypeByName(Mod, "rule_mac_type");
 	if (RuleMacType  == NULL)
 		err(1, "bitcode fault: RuleMacType ");
-	RuleFrag = mod->getFunction("rule_frag");
+	RuleFrag = LLVMGetTypeByName(Mod, "rule_frag");
 	if (RuleFrag  == NULL)
 		err(1, "bitcode fault: RuleFrag ");
-	RuleIn = mod->getFunction("rule_in");
+	RuleIn = LLVMGetTypeByName(Mod, "rule_in");
 	if (RuleIn  == NULL)
 		err(1, "bitcode fault: RuleIn ");
-	RuleLayer2 = mod->getFunction("rule_layer2");
+	RuleLayer2 = LLVMGetTypeByName(Mod, "rule_layer2");
 	if (RuleLayer2  == NULL)
 		err(1, "bitcode fault: RuleLayer2 ");
-	RuleDiverted = mod->getFunction("rule_diverted");
+	RuleDiverted = LLVMGetTypeByName(Mod, "rule_diverted");
 	if (RuleDiverted  == NULL)
 		err(1, "bitcode fault: RuleDiverted ");
-	RuleProto = mod->getFunction("rule_proto");
+	RuleProto = LLVMGetTypeByName(Mod, "rule_proto");
 	if (RuleProto  == NULL)
 		err(1, "bitcode fault: RuleProto ");
-	RuleIpSrc = mod->getFunction("rule_ip_src");
+	RuleIpSrc = LLVMGetTypeByName(Mod, "rule_ip_src");
 	if (RuleIpSrc  == NULL)
 		err(1, "bitcode fault: RuleIpSrc ");
-	RuleIpDstLookup = mod->getFunction("rule_ip_dst_lookup");
+	RuleIpDstLookup = LLVMGetTypeByName(Mod, "rule_ip_dst_lookup");
 	if (RuleIpDstLookup  == NULL)
 		err(1, "bitcode fault: RuleIpDstLookup ");
-	RuleIpDstMask = mod->getFunction("rule_ip_dst_mask");
+	RuleIpDstMask = LLVMGetTypeByName(Mod, "rule_ip_dst_mask");
 	if (RuleIpDstMask  == NULL)
 		err(1, "bitcode fault: RuleIpDstMask ");
-	RuleIpSrcMe = mod->getFunction("rule_ip_src_me");
+	RuleIpSrcMe = LLVMGetTypeByName(Mod, "rule_ip_src_me");
 	if (RuleIpSrcMe  == NULL)
 		err(1, "bitcode fault: RuleIpSrcMe ");
-
 #ifdef INET6
-	RuleIp6SrcMe = mod->getFunction("rule_ip6_src_me");
+	RuleIp6SrcMe = LLVMGetTypeByName(Mod, "rule_ip6_src_me");
 	if (RuleIp6SrcMe  == NULL)
 		err(1, "bitcode fault: RuleIp6SrcMe ");
 #endif
-
-	RuleIpSrcSet = mod->getFunction("rule_ip_src_set");
+	RuleIpSrcSet = LLVMGetTypeByName(Mod, "rule_ip_src_set");
 	if (RuleIpSrcSet  == NULL)
 		err(1, "bitcode fault: RuleIpSrcSet ");
-	RuleIpDst = mod->getFunction("rule_ip_dst");
+	RuleIpDst = LLVMGetTypeByName(Mod, "rule_ip_dst");
 	if (RuleIpDst  == NULL)
 		err(1, "bitcode fault: RuleIpDst ");
-	RuleIpDstMe = mod->getFunction("rule_ip_dst_me");
+	RuleIpDstMe = LLVMGetTypeByName(Mod, "rule_ip_dst_me");
 	if (RuleIpDstMe  == NULL)
 		err(1, "bitcode fault: RuleIpDstMe ");
-
 #ifdef INET6
-	RuleIp6DstMe = mod->getFunction("rule_ip6_dst_me");
+	RuleIp6DstMe = LLVMGetTypeByName(Mod, "rule_ip6_dst_me");
 	if (RuleIp6DstMe  == NULL)
 		err(1, "bitcode fault: RuleIp6DstMe ");
 #endif
-
-	RuleIpDstport = mod->getFunction("rule_ip_dstport");
+	RuleIpDstport = LLVMGetTypeByName(Mod, "rule_ip_dstport");
 	if (RuleIpDstport  == NULL)
 		err(1, "bitcode fault: RuleIpDstport ");
-	RuleIcmptype = mod->getFunction("rule_icmptype");
+	RuleIcmptype = LLVMGetTypeByName(Mod, "rule_icmptype");
 	if (RuleIcmptype  == NULL)
 		err(1, "bitcode fault: RuleIcmptype ");
-
 #ifdef INET6
-	RuleIcmp6type = mod->getFunction("rule_icmp6type");
+	RuleIcmp6type = LLVMGetTypeByName(Mod, "rule_icmp6type");
 	if (RuleIcmp6type  == NULL)
 		err(1, "bitcode fault: RuleIcmp6type ");
 #endif
-
-	RuleIpopt = mod->getFunction("rule_ipopt");
+	RuleIpopt = LLVMGetTypeByName(Mod, "rule_ipopt");
 	if (RuleIpopt  == NULL)
 		err(1, "bitcode fault: RuleIpopt ");
-	RuleIpver = mod->getFunction("rule_ipver");
+	RuleIpver = LLVMGetTypeByName(Mod, "rule_ipver");
 	if (RuleIpver  == NULL)
 		err(1, "bitcode fault: RuleIpver ");
-	RuleIpttl = mod->getFunction("rule_ipttl");
+	RuleIpttl = LLVMGetTypeByName(Mod, "rule_ipttl");
 	if (RuleIpttl  == NULL)
 		err(1, "bitcode fault: RuleIpttl ");
-	RuleIpprecedence = mod->getFunction("rule_ipprecedence");
+	RuleIpprecedence = LLVMGetTypeByName(Mod, "rule_ipprecedence");
 	if (RuleIpprecedence  == NULL)
 		err(1, "bitcode fault: RuleIpprecedence ");
-	RuleIptos = mod->getFunction("rule_iptos");
+	RuleIptos = LLVMGetTypeByName(Mod, "rule_iptos");
 	if (RuleIptos  == NULL)
 		err(1, "bitcode fault: RuleIptos ");
-	RuleDscp = mod->getFunction("rule_dscp");
+	RuleDscp = LLVMGetTypeByName(Mod, "rule_dscp");
 	if (RuleDscp  == NULL)
 		err(1, "bitcode fault: RuleDscp ");
-	RuleTcpdatalen = mod->getFunction("rule_tcpdatalen");
+	RuleTcpdatalen = LLVMGetTypeByName(Mod, "rule_tcpdatalen");
 	if (RuleTcpdatalen  == NULL)
 		err(1, "bitcode fault: RuleTcpdatalen ");
-	RuleTcpflags = mod->getFunction("rule_tcpflags");
+	RuleTcpflags = LLVMGetTypeByName(Mod, "rule_tcpflags");
 	if (RuleTcpflags  == NULL)
 		err(1, "bitcode fault: RuleTcpflags ");
-	RuleTcpopts = mod->getFunction("rule_tcpopts");
+	RuleTcpopts = LLVMGetTypeByName(Mod, "rule_tcpopts");
 	if (RuleTcpopts  == NULL)
 		err(1, "bitcode fault: RuleTcpopts ");
-	RuleTcpseq = mod->getFunction("rule_tcpseq");
+	RuleTcpseq = LLVMGetTypeByName(Mod, "rule_tcpseq");
 	if (RuleTcpseq  == NULL)
 		err(1, "bitcode fault: RuleTcpseq ");
-	RuleTcpack = mod->getFunction("rule_tcpack");
+	RuleTcpack = LLVMGetTypeByName(Mod, "rule_tcpack");
 	if (RuleTcpack  == NULL)
 		err(1, "bitcode fault: RuleTcpack ");
-	RuleTcpwin = mod->getFunction("rule_tcpwin");
+	RuleTcpwin = LLVMGetTypeByName(Mod, "rule_tcpwin");
 	if (RuleTcpwin  == NULL)
 		err(1, "bitcode fault: RuleTcpwin ");
-	RuleEstab = mod->getFunction("rule_estab");
+	RuleEstab = LLVMGetTypeByName(Mod, "rule_estab");
 	if (RuleEstab  == NULL)
 		err(1, "bitcode fault: RuleEstab ");
-	RuleAltq = mod->getFunction("rule_altq");
+	RuleAltq = LLVMGetTypeByName(Mod, "rule_altq");
 	if (RuleAltq  == NULL)
 		err(1, "bitcode fault: RuleAltq ");
-	RuleLog = mod->getFunction("rule_log");
+	RuleLog = LLVMGetTypeByName(Mod, "rule_log");
 	if (RuleLog  == NULL)
 		err(1, "bitcode fault: RuleLog ");
-	RuleProb = mod->getFunction("rule_prob");
+	RuleProb = LLVMGetTypeByName(Mod, "rule_prob");
 	if (RuleProb  == NULL)
 		err(1, "bitcode fault: RuleProb ");
-	RuleVerrevpath = mod->getFunction("rule_verrevpath");
+	RuleVerrevpath = LLVMGetTypeByName(Mod, "rule_verrevpath");
 	if (RuleVerrevpath  == NULL)
 		err(1, "bitcode fault: RuleVerrevpath ");
-	RuleVersrcreach = mod->getFunction("rule_versrcreach");
+	RuleVersrcreach = LLVMGetTypeByName(Mod, "rule_versrcreach");
 	if (RuleVersrcreach  == NULL)
 		err(1, "bitcode fault: RuleVersrcreach ");
-	RuleAntispoof = mod->getFunction("rule_antispoof");
+	RuleAntispoof = LLVMGetTypeByName(Mod, "rule_antispoof");
 	if (RuleAntispoof  == NULL)
 		err(1, "bitcode fault: RuleAntispoof ");
-
 #ifdef IPSEC
-	RuleIpsec = mod->getFunction("rule_ipsec");
+	RuleIpsec = LLVMGetTypeByName(Mod, "rule_ipsec");
 	if (RuleIpsec  == NULL)
 		err(1, "bitcode fault: RuleIpsec ");
 #endif
-
 #ifdef INET6
-	RuleIp6Src = mod->getFunction("rule_ip6_src");
+	RuleIp6Src = LLVMGetTypeByName(Mod, "rule_ip6_src");
 	if (RuleIp6Src  == NULL)
 		err(1, "bitcode fault: RuleIp6Src ");
-	RuleIp6Dst = mod->getFunction("rule_ip6_dst");
+	RuleIp6Dst = LLVMGetTypeByName(Mod, "rule_ip6_dst");
 	if (RuleIp6Dst  == NULL)
 		err(1, "bitcode fault: RuleIp6Dst ");
-	RuleIp6DstMask = mod->getFunction("rule_ip6_dst_mask");
+	RuleIp6DstMask = LLVMGetTypeByName(Mod, "rule_ip6_dst_mask");
 	if (RuleIp6DstMask  == NULL)
 		err(1, "bitcode fault: RuleIp6DstMask ");
-	RuleFlow6id = mod->getFunction("rule_flow6id");
+	RuleFlow6id = LLVMGetTypeByName(Mod, "rule_flow6id");
 	if (RuleFlow6id  == NULL)
 		err(1, "bitcode fault: RuleFlow6id ");
-	RuleExtHdr = mod->getFunction("rule_ext_hdr");
+	RuleExtHdr = LLVMGetTypeByName(Mod, "rule_ext_hdr");
 	if (RuleExtHdr  == NULL)
 		err(1, "bitcode fault: RuleExtHdr ");
-	RuleIp6 = mod->getFunction("rule_ip6");
+	RuleIp6 = LLVMGetTypeByName(Mod, "rule_ip6");
 	if (RuleIp6  == NULL)
 		err(1, "bitcode fault: RuleIp6 ");
 #endif
-
-	RuleIp4 = mod->getFunction("rule_ip4");
+	RuleIp4 = LLVMGetTypeByName(Mod, "rule_ip4");
 	if (RuleIp4  == NULL)
 		err(1, "bitcode fault: RuleIp4 ");
-	RuleTag = mod->getFunction("rule_tag");
+	RuleTag = LLVMGetTypeByName(Mod, "rule_tag");
 	if (RuleTag  == NULL)
 		err(1, "bitcode fault: RuleTag ");
-	RuleFib = mod->getFunction("rule_fib");
+	RuleFib = LLVMGetTypeByName(Mod, "rule_fib");
 	if (RuleFib  == NULL)
 		err(1, "bitcode fault: RuleFib ");
-	RuleSockarg = mod->getFunction("rule_sockarg");
+	RuleSockarg = LLVMGetTypeByName(Mod, "rule_sockarg");
 	if (RuleSockarg  == NULL)
 		err(1, "bitcode fault: RuleSockarg ");
-	RuleTagged = mod->getFunction("rule_tagged");
+	RuleTagged = LLVMGetTypeByName(Mod, "rule_tagged");
 	if (RuleTagged  == NULL)
 		err(1, "bitcode fault: RuleTagged ");
-	RuleKeepState = mod->getFunction("rule_keep_state");
+	RuleKeepState = LLVMGetTypeByName(Mod, "rule_keep_state");
 	if (RuleKeepState  == NULL)
 		err(1, "bitcode fault: RuleKeepState ");
-	RuleCheckState = mod->getFunction("rule_check_state");
+	RuleCheckState = LLVMGetTypeByName(Mod, "rule_check_state");
 	if (RuleCheckState  == NULL)
 		err(1, "bitcode fault: RuleCheckState ");
-	RuleAccept = mod->getFunction("rule_accept");
+	RuleAccept = LLVMGetTypeByName(Mod, "rule_accept");
 	if (RuleAccept  == NULL)
 		err(1, "bitcode fault: RuleAccept ");
-	RuleQueue = mod->getFunction("rule_queue");
+	RuleQueue = LLVMGetTypeByName(Mod, "rule_queue");
 	if (RuleQueue  == NULL)
 		err(1, "bitcode fault: RuleQueue ");
-	RuleTee = mod->getFunction("rule_tee");
+	RuleTee = LLVMGetTypeByName(Mod, "rule_tee");
 	if (RuleTee  == NULL)
 		err(1, "bitcode fault: RuleTee ");
-	RuleCount = mod->getFunction("rule_count");
+	RuleCount = LLVMGetTypeByName(Mod, "rule_count");
 	if (RuleCount  == NULL)
 		err(1, "bitcode fault: RuleCount ");
-	RuleSkipto = mod->getFunction("rule_skipto");
+	RuleSkipto = LLVMGetTypeByName(Mod, "rule_skipto");
 	if (RuleSkipto  == NULL)
 		err(1, "bitcode fault: RuleSkipto ");
-	RuleCallreturn = mod->getFunction("rule_callreturn");
+	RuleCallreturn = LLVMGetTypeByName(Mod, "rule_callreturn");
 	if (RuleCallreturn  == NULL)
 		err(1, "bitcode fault: RuleCallreturn ");
-	RuleReject = mod->getFunction("rule_reject");
+	RuleReject = LLVMGetTypeByName(Mod, "rule_reject");
 	if (RuleReject  == NULL)
 		err(1, "bitcode fault: RuleReject ");
-
 #ifdef INET6
-	RuleUnreach6 = mod->getFunction("rule_unreach6");
+	RuleUnreach6 = LLVMGetTypeByName(Mod, "rule_unreach6");
 	if (RuleUnreach6  == NULL)
 		err(1, "bitcode fault: RuleUnreach6 ");
 #endif
-
-	RuleDeny = mod->getFunction("rule_deny");
+	RuleDeny = LLVMGetTypeByName(Mod, "rule_deny");
 	if (RuleDeny  == NULL)
 		err(1, "bitcode fault: RuleDeny ");
-	RuleForwardIp = mod->getFunction("rule_forward_ip");
+	RuleForwardIp = LLVMGetTypeByName(Mod, "rule_forward_ip");
 	if (RuleForwardIp  == NULL)
 		err(1, "bitcode fault: RuleForwardIp ");
-
 #ifdef INET6
-	RuleForwardIp6 = mod->getFunction("rule_forward_ip6");
+	RuleForwardIp6 = LLVMGetTypeByName(Mod, "rule_forward_ip6");
 	if (RuleForwardIp6  == NULL)
 		err(1, "bitcode fault: RuleForwardIp6 ");
 #endif
-
-	RuleNgtee = mod->getFunction("rule_ngtee");
+	RuleNgtee = LLVMGetTypeByName(Mod, "rule_ngtee");
 	if (RuleNgtee  == NULL)
 		err(1, "bitcode fault: RuleNgtee ");
-	RuleSetfib = mod->getFunction("rule_setfib");
+	RuleSetfib = LLVMGetTypeByName(Mod, "rule_setfib");
 	if (RuleSetfib  == NULL)
 		err(1, "bitcode fault: RuleSetfib ");
-	RuleSetdscp = mod->getFunction("rule_setdscp");
+	RuleSetdscp = LLVMGetTypeByName(Mod, "rule_setdscp");
 	if (RuleSetdscp  == NULL)
 		err(1, "bitcode fault: RuleSetdscp ");
-	RuleNat = mod->getFunction("rule_nat");
+	RuleNat = LLVMGetTypeByName(Mod, "rule_nat");
 	if (RuleNat  == NULL)
 		err(1, "bitcode fault: RuleNat ");
-	RuleReass = mod->getFunction("rule_reass");
+	RuleReass = LLVMGetTypeByName(Mod, "rule_reass");
 	if (RuleReass  == NULL)
 		err(1, "bitcode fault: RuleReass ");
 }
