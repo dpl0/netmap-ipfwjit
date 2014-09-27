@@ -18,7 +18,7 @@
 typedef int (*funcptr)();
 
 //Vars used for compilation
-LLVMModuleRef mod;
+LLVMModuleRef Mod;
 LLVMContextRef Con;
 LLVMBuilderRef Irb;
 // This is the function we're working on.
@@ -247,7 +247,7 @@ loadBitcode()
 	res = LLVMCreateMemoryBufferWithContentsOfFile("rules.bc", &buf, &msg);
 	if (res != 0)
 		printf("Error when getting the bitcode: %s\n", msg);
-	res = LLVMParseIRInContext(Con, buf, &mod, &msg);
+	res = LLVMParseIRInContext(Con, buf, &Mod, &msg);
 	if (res != 0)
 		printf("Error when parsing the bitcode: %s\n", msg);
 }
@@ -883,9 +883,9 @@ startcompiler(int rulesnumber)
 	Irb = LLVMCreateBuilderInContext(Con);
 
 	// Create the module and load the code.
-	mod = loadBitcode();
+	Mod = loadBitcode();
 
-	Func = LLVMGetNamedFunction(mod, "ipfw_chk_jit");
+	Func = LLVMGetNamedFunction(Mod, "ipfw_chk_jit");
 	if (Func == NULL)
 		err(1, "bitcode fault: ipfw_chk_jit");
 	LLVMSetLinkage(Func, LLVMExternalLinkage);
@@ -928,7 +928,7 @@ compile()
 	//PMBuilder.Inliner = createFunctionInliningPass(275);
 
 	// Function passes
-	FunctionPassManager *PerFunctionPasses = new FunctionPassManager(mod);
+	FunctionPassManager *PerFunctionPasses = new FunctionPassManager(Mod);
 	PMBuilder.populateFunctionPassManager(*PerFunctionPasses);
 	PerFunctionPasses->run(*Func);
 	PerFunctionPasses->doFinalization();
