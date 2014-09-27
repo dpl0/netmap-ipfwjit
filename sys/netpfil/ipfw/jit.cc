@@ -870,7 +870,7 @@ emit_check_tag()
 	// else f_pos = 0;
 	// Since f_pos is initialized by default as 0, we only br.
 	Irb.SetInsertPoint(Nottagged);
-	Irb.CreateBr(rules.front());
+	Irb.CreateBr(rules[0]);
 }
 
 // Set up the compiling stuff.
