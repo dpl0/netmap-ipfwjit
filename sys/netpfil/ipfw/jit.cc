@@ -638,118 +638,149 @@ setEnv()
 		err(1, "bitcode fault: RuleReass ");
 }
 
-// Allocate and initialize LLVM vars.
-// Note: The type of the object returned by CreateStore
-// is already a pointer to a given type.
+/* Allocate and initialize LLVM vars. */
+/* Note: The type of the object returned by LLVMBuildAlloca */
+/* is already a pointer to a given type. */
 void
 allocaAndInit()
 {
-	Irb.SetInsertPoint(Entry);
+	LLVMValueRef Int320S = LLVMConstInt(Int32Ty, 0, 1);
+	LLVMValueRef Int320U = LLVMConstInt(Int32Ty, 0, 0);
+	LLVMValueRef Int160U = LLVMConstInt(Int16Ty, 0, 0);
+	LLVMValueRef Int80U = LLVMConstInt(Int16Ty, 0, 1);
 
-	// Control flow variables.
-	Done = Irb.CreateAlloca(Int32Ty, nullptr, "done");
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Done);
+	LLVMPositionBuilderAtEnd(Irb, Entry);
 
-	FPos = Irb.CreateAlloca(Int32Ty, nullptr, "fpos");
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), FPos);
+	/* Control flow variables. */
+	/* int done = 0; */
+	Done = LLVMBuildAlloca(Irb, Int32Ty, "done");
+	LLVMBuildStore(in320S, Done);
 
-	Retval = Irb.CreateAlloca(Int32Ty, nullptr, "retval");
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Retval);
+	/* int f_pos = 0; */
+	FPos = LLVMBuildAlloca(Irb, Int32Ty, "fpos");
+	LLVMBuildStore(Int320S, FPos);
 
-	// m = args->m (idx: 0)
-	MPtr = Irb.CreateAlloca(MbufPtrTy, nullptr, "m");
-	Irb.CreateStore(Irb.CreateLoad(Irb.CreateStructGEP(Args, 0)), MPtr);
-	M = Irb.CreateLoad(MPtr);
+	/* int retval = 0; */
+	Retval = LLVMBuildAlloca(Irb, Int32Ty, "retval");
+	LLVMBuildStore(Int320S, Retval);
 
-	// ip = (struct ip *)((m)->m_data) (idx: 2)
-	IpPtr = Irb.CreateAlloca(IpPtrTy, nullptr, "ip");
-	LLVMValueRef M_data = Irb.CreateStructGEP(M, 2);
-	LLVMValueRef M_casted = Irb.CreateBitCast(M_data, IpPtrTy);
-	Irb.CreateStore(M_casted, IpPtr);
+	/* m = args->m (idx: 0) */
+	MPtr = LLVMBuildAlloca(Irb, MbufPtrTy, "m");
+	LLVMValueRef MG = LLVMBuildStructGEP(Irb, Args, 0, NULL);
+	LLVMValueRef MGL = LLVMBuildLoad(Irb, MG, NULL);
+	LLVMBuildStore(Irb, MGL, MPtr);
+	M = LLVMBuildLoad(Irb, MPtr);
 
-	Ucred_lookup = Irb.CreateAlloca(Int32Ty, nullptr, "ucred_lookup");
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Ucred_lookup);
+	/* ip = (struct ip *)((m)->m_data) (idx: 2) */
+	IpPtr = LLVMBuildAlloca(Irb, IpPtrTy, NULL, "ip");
+	LLVMValueRef M_data = LLVMBuildStructGEP(Irb, M, 2, NULL)
+	LLVMValueRef M_casted = LLVMBuildBitCast(Irb, M_data, IpPtrTy, NULL);
+	LLVMBuildStore(M_casted, IpPtr);
 
-	Oif = Irb.CreateAlloca(IfnetTy, nullptr, "oif"); // Init: args->oif
-	Irb.CreateLoad(Irb.CreateStructGEP(Args, 1), Oif);
+	/* int ucred_lookup = 0; */
+	Ucred_lookup = LLVMBuildAlloca(Irb, Int32Ty, NULL, "ucred_lookup");
+	LLVMBuildStore(Int320S, Ucred_lookup);
 
-	Hlen = Irb.CreateAlloca(Int32Ty, nullptr, "hlen");
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Hlen);
+	/* struct ifnet *oif = args->oif; (idx: 0) */
+	Oif = LLVMBuildAlloca(Irb, IfnetTy, NULL, "oif");
+	LLVMValueRef ArgsG = LLVMBuildStructGEP(Irb, Args, 1, NULL);
+	LLVMValueRef ArgsGL = LLVMBuildLoad(Irb, ArgsG, Oif);
+	LLVMBuildStore(Irb, ArgsGL, Oif);
 
-	Offset = Irb.CreateAlloca(Int16Ty, nullptr, "offset");
-	Irb.CreateStore(ConstantInt::get(Int16Ty, 0), Offset);
+	/* u_int hlen = 0;	*/
+	Hlen = LLVMBuildAlloca(Irb, Int32Ty, NULL, "hlen");
+	LLVMCreateStore(Irb, Int320U, Hlen);
 
-	Ip6fMf = Irb.CreateAlloca(Int16Ty, nullptr, "ip6f_mf");
-	Irb.CreateStore(ConstantInt::get(Int16Ty, 0), Ip6fMf);
+	/* u_short offset = 0; */
+	Offset = LLVMBuildAlloca(Irb, Int16Ty, NULL, "offset");
+	LLVMCreateStore(Irb, Int160U, Offset);
 
-	// proto = 0
-	Proto = Irb.CreateAlloca(Int8Ty, nullptr, "proto");
-	Irb.CreateStore(ConstantInt::get(Int8Ty, 0), Proto);
-	// args->f_id.proto = 0 (idx: 6, 5)
-	LLVMValueRef F_id = Irb.CreateStructGEP(Args, 6);
-	LLVMValueRef FProto = Irb.CreateStructGEP(F_id, 5);
-	Irb.CreateStore(ConstantInt::get(Int8Ty, 0), FProto);
+	/* u_short ip6f_mf = 0; */
+	Ip6fMf = LLVMBuildAlloca(Irb, Int16Ty, NULL, "ip6f_mf");
+	LLVMCreateStore(Irb, Int160U, Ip6Mf);
 
-	SrcPort = Irb.CreateAlloca(Int16Ty, nullptr, "src_port");
-	Irb.CreateStore(ConstantInt::get(Int16Ty, 0), SrcPort);
-	DstPort = Irb.CreateAlloca(Int16Ty, nullptr, "dst_port");
-	Irb.CreateStore(ConstantInt::get(Int16Ty, 0), DstPort);
+	/* uint8_t proto = 0; */
+	Proto = LLVMBuildAlloca(Irb, Int8Ty, NULL, "proto");
+	LLVMCreateStore(Irb, Int80U, Proto);
 
-	//src_ip.s_addr = 0;
-	SrcIp = Irb.CreateAlloca(In_addrTy, nullptr, "src_ip");
-	LLVMValueRef Src_s_addr = Irb.CreateStructGEP(SrcIp, 0);
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Src_s_addr);
-	//dst_ip.s_addr = 0;
-	DstIp = Irb.CreateAlloca(In_addrTy, nullptr, "dst_ip");
-	LLVMValueRef Dst_s_addr = Irb.CreateStructGEP(DstIp, 0);
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Dst_s_addr);
+	/* uint8_t args->f_id.proto = 0 (idx: 6, 5) */
+	LLVMValueRef F_id = LLVMBuildStructGEP(Irb, Args, 6, NULL);
+	LLVMValueRef FProto = Irb.CreateStructGEP(F_id, 5, NULL);
+	LLVMCreateStore(Irb, Int80U, FProto);
 
-	//iplen = 0;
-	Iplen = Irb.CreateAlloca(Int16Ty, nullptr, "iplen");
-	Irb.CreateStore(ConstantInt::get(Int16Ty, 0), Iplen);
+	/* uint16_t src_port = 0, dst_port = 0;	*/
+	SrcPort = LLVMBuildAlloca(Irb, Int16Ty, NULL, "src_port");
+	LLVMBuildStore(Irb, Int160U, SrcPort);
+	DstPort = LLVMBuildAlloca(Irb, Int16Ty, NULL, "dst_port");
+	LLVMBuildStore(Irb, Int160U, DstPort);
 
-	// pktlen = m->m_pkthdr.len;
-	// m_pkthdr is the 6th element (idx: 5)
-	// len is the 2nd element (idx: 1)
-	Pktlen = Irb.CreateAlloca(Int32Ty, nullptr, "pktlen");
-	LLVMValueRef Header = Irb.CreateStructGEP(M, 5);
-	LLVMValueRef LengthPtr = Irb.CreateStructGEP(Header, 1);
-	LLVMValueRef Length = Irb.CreateLoad(LengthPtr);
-	Irb.CreateStore(Length, Pktlen);
+	/* (uint32_t) src_ip.s_addr = 0; */
+	SrcIp = LLVMBuildAlloca(Irb, In_addrTy, NULL, "src_ip");
+	LLVMValueRef SrcSAddr = LLVMBuildStructGEP(Irb, SrcIp, 0);
+	LLVMBuildStore(Irb, Int320U, SrcSAddr);
+	/* (uint32_t) dst_ip.s_addr = 0; */
+	DstIp = LLVMBuildAlloca(Irb, In_addrTy, NULL, "dst_ip");
+	LLVMValueRef DstSAddr = LLVMBuildStructGEP(Irb, DstIp, 0);
+	LLVMBuildStore(Irb, Int320U, DstSAddr);
 
-	Etype = Irb.CreateAlloca(Int16Ty, nullptr, "etype");
-	Irb.CreateStore(ConstantInt::get(Int16Ty, 0), Etype);
+	/* uint16_t iplen=0; */
+	Iplen = LLVMBuildAlloca(Irb, Int16Ty, NULL, "iplen");
+	LLVMBuildStore(Irb, Int160U, Iplen);
 
-	Dyn_dir = Irb.CreateAlloca(Int32Ty, nullptr, "dyn_dir");
-	Irb.CreateStore(ConstantInt::get(Int32Ty, MATCH_UNKNOWN), Dyn_dir);
+	/* pktlen = m->m_pkthdr.len; */
+	/* m_pkthdr is the 6th element (idx: 5) */
+	/* len is the 2nd element (idx: 1) */
+	Pktlen = LLVMBuildAlloca(Irb, Int32Ty, NULL, "pktlen");
+	LLVMValueRef Header = LLVMBuildStructGEP(Irb, M, 5);
+	LLVMValueRef LengthPtr = LLVMBuildStructGEP(Irb, Header, 1);
+	LLVMValueRef Length = LLLVMBuildLoad(Irb, LengthPtr);
+	LLVMBuildStore(Irb, Length, Pktlen);
 
-	Q = Irb.CreateAlloca(Ipfw_dyn_rulePtrTy, nullptr, "q");
-	Irb.CreateStore(ConstantPointerNull::get(Ipfw_dyn_rulePtrTy), Q);
+	/* uint16_t	etype = 0; */
+	Etype = LLVMBuildAlloca(Irb, Int16Ty, NULL, "etype");
+	LLVMBuildStore(Irb, Int160U, Etype);
 
-	// There are no (void *), we use i8*
-	Ulp = Irb.CreateAlloca(Int8PtrTy, nullptr, "ulp");
-	Irb.CreateStore(ConstantPointerNull::get(Int8PtrTy), Ulp);
+	/* int dyn_dir = MATCH_UNKNOWN; */
+	Dyn_dir = LLVMBuildAlloca(Irb, Int32Ty, NULL, "dyn_dir");
+	LLVMBuildStore(Irb, LLVMConstInt(Int16Ty, MATCH_UNKNOWN, 1), Dyn_dir);
 
-	IsIpv4 = Irb.CreateAlloca(Int32Ty, nullptr, "is_ipv4");
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), IsIpv4);
-	IsIpv6 = Irb.CreateAlloca(Int32Ty, nullptr, "is_ipv6");
-	Irb.CreateStore(ConstantInt::get(Int32Ty, 0), IsIpv6);
-	Icmp6Type = Irb.CreateAlloca(Int8Ty, nullptr, "icmp6_type");
-	Irb.CreateStore(ConstantInt::get(Int8Ty, 0), Icmp6Type);
-	ExtHd = Irb.CreateAlloca(Int16Ty, nullptr, "ext_hd");
-	Irb.CreateStore(ConstantInt::get(Int16Ty, 0), ExtHd);
+	/* ipfw_dyn_rule *q = NULL; */
+	Q = LLVMBuildAlloca(Irb, Ipfw_dyn_rulePtrTy, NULL, "q");
+	LLVMBuildStore(Irb, LLVMConstPointerNull(Ipfw_dyn_rulePtrTy), Q);
+
+	/* We use Int8PtrTy as void ptr */
+	/* void *ulp = NULL; */
+	Ulp = LLVMBuildAlloca(Irb, Int8PtrTy, NULL, "ulp");
+	LLVMBuildStore(Irb, ConstantPointerNull::get(Int8PtrTy), Ulp);
+
+	/* int is_ipv4 = 0; */
+	IsIpv4 = LLVMBuildAlloca(Irb, Int32Ty, NULL, "is_ipv4");
+	LLVMBuildStore(Irb, Int320U, IsIpv4);
+
+	/* int is_ipv6 = 0; */
+	IsIpv6 = LLVMBuildAlloca(Irb, Int32Ty, NULL, "is_ipv6");
+	LLVMBuildStore(Irb, Int320U, IsIpv6);
+
+	/* uint8_t	icmp6_type = 0; */
+	Icmp6Type = LLVMBuildAlloca(Irb, Int8Ty, NULL, "icmp6_type");
+	LLVMBuildStore(Irb, Int80U, Icmp6Type);
+
+	/* uint16_t ext_hd = 0; */
+	ExtHd = LLVMBuildAlloca(Irb, Int16Ty, NULL, "ext_hd");
+	LLVMBuildStore(Irb, Int160U, ExtHd);
 
 	// If it returns one, goto pullup_failed.
 	// Else, goto first rule.
-	LLVMValueRef Ip = Irb.CreateLoad(IpPtr);
-	LLVMValueRef UlpL = Irb.CreateLoad(Ulp);
+	LLVMValueRef Ip = LLVMBuildLoad(Irb, IpPtr);
+	LLVMValueRef UlpL = LLVMBuildLoad(Irb, Ulp);
 
-	LLVMValueRef InspectPktCall = Irb.CreateCall(InspectPkt, {Args, Ip, M, SrcIp, 
-		DstIp, SrcPort, DstPort, Etype, ExtHd, Iplen, Pktlen, IsIpv4,
-		IsIpv6, Hlen, Proto, Icmp6Type, Ip6fMf, Offset, UlpL});
+	LLVMValueRef InspectPktCall = LLVMBuildCall(Irb, InspectPkt, {Args, Ip, M,
+		SrcIp, DstIp, SrcPort, DstPort, Etype, ExtHd, Iplen, Pktlen, IsIpv4,
+		IsIpv6, Hlen, Proto, Icmp6Type, Ip6fMf, Offset, UlpL}, 19, NULL);
 
-	LLVMValueRef Comp = Irb.CreateICmpEQ(InspectPktCall, ConstantInt::get(Int32Ty, 1));
-	Irb.CreateCondBr(Comp, PullupFailed, CheckTag);
+	LLVMValueRef Comp = LLVMBuildICmp(Irb, LLVMIntEQ, InspectPktCall,
+		LLVMConstInt(Int32Ty, 1));
+	LLVMBuildCondBr(Irb, Comp, PullupFailed, CheckTag);
 }
 
 // This is equivalent to the pullup_failed tag.
