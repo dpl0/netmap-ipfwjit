@@ -783,43 +783,46 @@ allocaAndInit()
 	LLVMBuildCondBr(Irb, Comp, PullupFailed, CheckTag);
 }
 
-// This is equivalent to the pullup_failed tag.
+/* This is equivalent to the pullup_failed tag. */
 void
 emit_pullup_failed()
 {
-	LLVMBasicBlockRef print = BasicBlock::Create(Con, "print", Func);
-	LLVMBasicBlockRef ret = BasicBlock::Create(Con, "ret", Func);
+	LLVMBasicBlockRef Print = LLVMAppendBasicBlockInContext(Con, "print", Func);
+	LLVMBasicBlockRef Ret = LLVMAppendBasicBlockInContext(Con, "ret", Func);
 
 	LLVMValueRef Is_verbose, Str, Comp;
 
-	// VNET_DECLARE(int, fw_verbose);
-	// #define	V_fw_verbose		VNET(fw_verbose)
-	// We should be fine getting that from the Module.
+	/* VNET_DECLARE(int, fw_verbose); */
+	/* #define	V_fw_verbose		VNET(fw_verbose) */
+	/* We should be fine getting that from the Module. */
 
-	// pullup_failed:
-	// 	if (V_fw_verbose)
-	// 		printf("ipfw: pullup failed\n");
-	// 	return (IP_FW_DENY);
+	/* pullup_failed: */
+	/* 	if (V_fw_verbose) */
+	/* 		printf("ipfw: pullup failed\n"); */
+	/* 	return (IP_FW_DENY); */
 
-	Is_verbose = mod->getGlobalVariable("fw_verbose");
-	Str = Irb.CreateGlobalString("ipfw: pullup failed\n");
+	IsVerbose = LLVMGetNamedGlobal(Mod, "fw_verbose");
+	Str = LLVMBuildGlobalString(Irb, "ipfw: pullup failed\n", NULL);
 
-	Irb.SetInsertPoint(PullupFailed);
+	LLVMPositionBuilderAtEnd(Irb, PullupFailed);
 
-	// if (V_fw_verbose)
-	LLVMValueRef Is_verboseL = Irb.CreateLoad(Is_verbose); 
-	Comp = Irb.CreateICmpEQ(Is_verboseL, ConstantInt::get(Int32Ty, 0));
-	Irb.CreateCondBr(Comp, ret, print);
+	/* if (V_fw_verbose) */
+	LLVMValueRef Is_verboseL = LLVMBuildLoad(Irb, Is_verbose); 
+	// XXX SIGN?
+	Comp = LLVMBuildICmp(Irb, LLVMIntEQ, Is_verboseL, 
+		LLVMConstInt(Int32Ty, 0, 0));
+	LLVMBuildCondBr(Irb, Comp, Ret, Print);
 
-	// printf("ipfw: pullup failed\n");
-	Irb.SetInsertPoint(print);
-	LLVMValueRef StrFirstElement = Irb.CreateStructGEP(Str, 0);
-	Irb.CreateCall(PrintfFunc, StrFirstElement);
-	Irb.CreateBr(ret);
+	/* printf("ipfw: pullup failed\n"); */
+	LLVMPositionBuilderAtEnd(Irb, Print);
+	LLVMValueRef StrFirstElement = LLVMBuildStructGEP(Irb, Str, 0);
+	LLVMBuildCall(Irb, PrintfFunc, StrFirstElement, 1, NULL);
+	LLVMBuildBr(Irb, Ret);
 
-	// return (IP_FW_DENY);
-	Irb.SetInsertPoint(ret);
-	Irb.CreateRet(ConstantInt::get(Int32Ty, IP_FW_DENY));
+	/* return (IP_FW_DENY); */
+	LLVMPositionBuilderAtEnd(Irb, Ret);
+	// XXX SIGN?
+	LLVMBuildRet(Irb, LLVMConstInt(Int32Ty, IP_FW_DENY, 0));
 }
 
 void
@@ -927,7 +930,6 @@ startcompiler(int rulesnumber)
 	rules = calloc(rulesnumber, sizeof(LLVMBasicBlockRef));
 	for (i = 0; i < rulesnumber; i++)
 		rules[i] = LLVMAppendBasicBlockInContext(Con, "rule", Func);
-	}
 
 	emit_check_tag();
 	emit_pullup_failed();
