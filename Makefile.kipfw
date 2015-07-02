@@ -93,7 +93,7 @@ IPFW_CFLAGS= -DINET
 E_CFLAGS += -Dradix
 MOD := kipfw
 
-LIBS=`llvm-config-devel --ldflags --system-libs --libs all`
+LIBS=`llvm-config35 --ldflags --system-libs --libs all`
 CFLAGS = $(E_CFLAGS)
 
 IPFW_OBJS= $(IPFW_SRCS:%.c=%.o)
@@ -153,7 +153,7 @@ ip_fw2.o: jit.o
 
 #Generate the actual bytecode to be used
 ../rules.bc:
-	$(HIDE) $(CC) $(CFLAGS) -O0 -emit-llvm -c -o ../rules.bc ../sys/netpfil/ipfw/ip_fw_rules.c
+	$(CC) $(CFLAGS) -O0 -emit-llvm -c -o ../rules.bc ../sys/netpfil/ipfw/ip_fw_rules.c
 
 radix.o:#	CFLAGS += -U_KERNEL
 
@@ -166,7 +166,7 @@ $(MOD): $(IPFW_OBJS) jit.o
 
 jit.o: jit.cc ../rules.bc
 	$(MSG) "   CC $<"
-	$(HIDE)@clang++ -c $(J_CFLAGS) `llvm-config-devel --cxxflags` -g -O0 -o ./jit.o ../sys/netpfil/ipfw/jit.cc
+	$(HIDE)@clang++ -c $(J_CFLAGS) `llvm-config35 --cxxflags` -g -O0 -o ./jit.o ../sys/netpfil/ipfw/jit.cc
 clean:
 	-rm -f *.o $(DN) $(MOD)
 	-rm -rf include_e
