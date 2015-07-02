@@ -1,10 +1,10 @@
- #include <sys/param.h>
- #include <sys/ucred.h>
- #include <netinet/in.h>
+#include <sys/param.h>
+#include <sys/ucred.h>
+#include <netinet/in.h>
 
- // #define IPFW_RULES_INLINE __unused
- #define IPFW_RULES_INLINE __attribute__((used)) __always_inline
- #include "ip_fw_rules.h"
+// #define IPFW_RULES_INLINE __unused
+#define IPFW_RULES_INLINE __attribute__((used)) __always_inline
+#include "ip_fw_rules.h"
 
 // The real function will be compiled and inserted by the JIT.
 int ipfw_chk_jit(struct ip_fw_args *args, struct ip_fw_chain *chain);
@@ -83,7 +83,7 @@ m_freem(struct mbuf *m)
 };
 
 
-// Declarations of some needed structs.
+// Declarations of some needed structs for JIT compilation.
 struct mbuf;
 struct ifnet;
 struct in_addr;

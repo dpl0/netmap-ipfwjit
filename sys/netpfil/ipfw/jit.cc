@@ -686,6 +686,7 @@ class ipfwJIT {
 	}
 
 	// Allocate and initialize LLVM vars.
+	// It creates a call to the pkt inspection function.
 	// Note: The type of the object returned by CreateStore
 	// is already a pointer to a given type.
 	void
@@ -856,7 +857,7 @@ class ipfwJIT {
 		// 	 * match on rule args->rule aka args->rule_id (PIPE, QUEUE,
 		// 	 * REASS, NETGRAPH, DIVERT/TEE...)
 		// 	 * Validate the slot and continue from the next one
-		// 	 * if still present, otherwise do a lookup.
+		// 	 * if still present, otherwise perform a lookup.
 		// 	 */
 		// 	f_pos = (args->rule.chain_id == chain->id) ?
 		// 		args->rule.slot :
@@ -1349,7 +1350,7 @@ class ipfwJIT {
 	emit_jail()
 	{
 		// rule_jail(&match, offset, proto, cmd, args, ucred_lookup, ucred_cache);
-		// We roll our own version because we don't have ucred_lookup.
+		// We wrote our own version because we don't have ucred_lookup.
 
 		BasicBlock *OffsetNZ = BasicBlock::Create(Con, "R_offsetnotzero", Func);
 		BasicBlock *OffsetZE = BasicBlock::Create(Con, "R_offsetiszero", Func);
