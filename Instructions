@@ -57,13 +57,13 @@ The commands to run (in separate windows) are
 	sudo kldload netmap.ko
 
 	# connect the firewall to two vale switches
-	./kipfw valeA:f valeB:f &
+	./kipfw valeA:s valeA:r &
 
 	# configure ipfw/dummynet
 	ipfw/ipfw show	# or other
 
-	# start the sink
-	pkt-gen -i valeB:d -f rx
+	# start the sink/receptor
+	pkt-gen -i valeA:r -f rx
 
 	# start an infinite source
 	pkt-gen -i valeA:s -f tx
