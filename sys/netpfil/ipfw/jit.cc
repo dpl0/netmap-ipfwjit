@@ -1498,21 +1498,38 @@ class ipfwJIT {
 	void
 	emit_ip_dst_mask()
 	{
+		// rule_ip_dst_mask(int *match, int is_ipv4, ipfw_insn *cmd, int cmdlen, struct in_addr *dst_ip, struct in_addr *src_ip)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		Irb.CreateCall(RuleIpDstMask, {Match, IsIpv4L, Cmd, CmdlenL, DstIp, SrcIp});
 	}
 
 	void
 	emit_ip_src_me()
 	{
+		// rule_ip_src_me(int *match, int is_ipv4, int is_ipv6, struct in_addr *src_ip, struct ip_fw_args *args)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleIpSrcMe, {Match, IsIpv4L, IsIpv6L, SrcIp, Args});
 	}
 
 	void
 	emit_ip6_src_me()
 	{
+#ifdef INET6
+		// rule_ip6_src_me(int *match, int is_ipv6, struct ip_fw_args *args)
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleIp6SrcMe, {Match, IsIpv6L, Args});
+#endif /* INET6 */
 	}
 
 	void
 	emit_ip_src_set()
 	{
+		// rule_ip_src_set(int *match, int is_ipv4, ipfw_insn *cmd, struct ip_fw_args *args)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleIpSrc, {Match, IsIpv4L, CmdL, Args});
 	}
 
 	void
@@ -1527,193 +1544,368 @@ class ipfwJIT {
 	void
 	emit_ip_dst_me()
 	{
+		// rule_ip_dst_me(int *match, struct ip_fw_args *args, int is_ipv4, int is_ipv6, struct in_addr *dst_ip)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleIpDstMe, {Match, Args, IsIpv4L, IsIpv6L, DstIp});
 	}
 
 	void
 	emit_ip6_dst_me()
 	{
+#ifdef INET6
+		// rule_ip6_dst_me(int *match, struct ip_fw_args *args, int is_ipv6)
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleIp6DstMe, {Match, Args, IsIpv6L});
+#endif /* INET6 */
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_ip_dstport()
 	{
-		// rule_ip_dstport(&match, proto, offset, cmd, cmdlen, dst_port, src_port);
+		// rule_ip_dstport(int *match, uint8_t proto, u_short offset, ipfw_insn *cmd, int cmdlen, uint16_t dst_port, uint16_t src_port)
 		Value *ProtoL = Irb.CreateLoad(Proto);
 		Value *OffsetL = Irb.CreateLoad(Offset);
 		Value *CmdL = Irb.CreateLoad(Cmd);
 		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
 		Value *DstPortL = Irb.CreateLoad(DstPort);
 		Value *SrcPortL = Irb.CreateLoad(SrcPort);
-
 		Irb.CreateCall(RuleIpDstport, {Match, ProtoL, OffsetL, CmdL, CmdlenL, DstPortL, SrcPortL});
 	}
 
 	void
 	emit_icmptype()
 	{
+		// rule_icmptype(int *match, u_short offset, uint8_t proto, void *ulp, ipfw_insn *cmd )
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleIcmptype, {Match, OffsetL, ProtoL, UlpL, Cmd});
 	}
 
 	void
 	emit_icmp6type()
 	{
+#ifdef INET6
+		// rule_icmp6type(int *match, u_short offset, int is_ipv6, uint8_t proto, void *ulp, ipfw_insn *cmd)
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleIcmp6type, {Match, OffsetL, IsIpv6L, ProtoL, UlpL, Cmd});
+#endif /* INET6 */
 	}
 
 	void
 	emit_ipopt()
 	{
+		// rule_ipopt(int *match, int is_ipv4, struct ip *ip, ipfw_insn *cmd)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Irb.CreateCall(RuleIpopt, {Match, IsIpv4, IpPtr, CmdL});
 	}
 
 	void
 	emit_ipver()
 	{
+		// rule_ipver(int *match, int is_ipv4, ipfw_insn *cmd, struct ip *ip)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleIpver, {Match, IsIpv4L, CmdL, IpPtr});
 	}
 
 	void
 	emit_ipttl()
 	{
+		// rule_ipttl(int *match, int is_ipv4, ipfw_insn *cmd, int cmdlen, struct ip *ip, uint16_t iplen)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		Value *IplenL = Irb.CreateLoad(Iplen);
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Irb.CreateCall(RuleIpttl, {Match, IsIpv4L, CmdL, CmdlenL, IpPtr, IplenL});
 	}
 
 	void
 	emit_ipprecedence()
 	{
+		// rule_ipprecedence(int *match, int is_ipv4, ipfw_insn *cmd, struct ip *ip)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Irb.CreateCall(RuleIpprecedence, {Match, IsIpv4L, CmdL, IpPtr});
 	}
 
 	void
 	emit_iptos()
 	{
+		// rule_iptos(int *match, int is_ipv4, ipfw_insn *cmd, struct ip *ip)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleIptos, {Match, IsIpv4L, CmdL, IpPtr});
 	}
 
 	void
 	emit_dscp()
 	{
+		// rule_dscp(int *match, int is_ipv4, int is_ipv6, ipfw_insn *cmd, struct ip *ip)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleDscp, {Match, IsIpv4L, IsIpv6L, CmdL, IpPtr});
 	}
 
 	void
 	emit_tcpdatalen()
 	{
+		// rule_tcpdatalen(int *match, uint8_t proto, u_short offset, void *ulp, uint16_t iplen, int cmdlen, ipfw_insn *cmd, struct ip *ip)
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Value *IplenL = Irb.CreateLoad(Iplen);
+		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleTcpdatalen, {Match, ProtoL, OffsetL, UlpL, IplenL, CmdlenL, CmdL, IpPtr});
 	}
 
 	void
 	emit_tcpflags()
 	{
+		// rule_tcpflags(int *match, uint8_t proto, u_short offset, ipfw_insn *cmd, void *ulp)
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Irb.CreateCall(RuleTcpflags, {Match, ProtoL, OffsetL, CmdL, UlpL});
 	}
 
 	void
 	emit_tcpopts()
 	{
-		// if (rule_tcpopts(&match, hlen, ulp, proto, offset, cmd, m, args))
+		// if (rule_tcpopts(int *match, u_int hlen, void *ulp, uint8_t proto, u_short offset, ipfw_insn *cmd, struct mbuf *m, struct ip_fw_args *args))
 		// 	goto pullup_failed;
 	}
 
 	void
 	emit_tcpseq()
 	{
+		// rule_tcpseq(int *match, uint8_t proto, u_short offset, ipfw_insn *cmd, void *ulp)
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Irb.CreateCall(RuleTcpseq, {Match, ProtoL, OffsetL, CmdL, UlpL});
 	}
 
 	void
 	emit_tcpack()
 	{
+		// rule_tcpack(int *match, uint8_t proto, u_short offset, ipfw_insn *cmd, void *ulp)
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Irb.CreateCall(RuleTcpack, {Match, ProtoL, OffsetL, CmdL, UlpL});
 	}
 
 	void
 	emit_tcpwin()
 	{
+		// rule_tcpwin(int *match, uint8_t proto, u_short offset, ipfw_insn *cmd, int cmdlen, void *ulp)
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Irb.CreateCall(RuleTcpwin, {Match, ProtoL, OffsetL, CmdL, CmdlenL, UlpL});
 	}
 
 	void
 	emit_estab()
 	{
+		// rule_estab(int *match, uint8_t proto, u_short offset, void *ulp)
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Irb.CreateCall(RuleEstab, {Match, ProtoL, OffsetL, UlpL});
 	}
 
 	void
 	emit_altq()
 	{
+		// rule_altq(int *match, ipfw_insn *cmd, struct mbuf *m, struct ip *ip)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleAltq, {Match, CmdL, M, IpPtr});
 	}
 
 	void
 	emit_log()
 	{
+		// rule_log(int *match, struct ip_fw *f, u_int hlen, struct ip_fw_args *args, struct mbuf *m, struct ifnet *oif, u_short offset, u_short ip6f_mf, uint32_t tablearg, struct ip *ip)
+		Value *FL = Irb.CreateLoad(F);
+		Value *HlenL = Irb.CreateLoad(Hlen);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Value *Ip6fMfL = Irb.CreateLoad(Ip6fMf);
+		Irb.CreateCall(RuleLog, {Match, FL, HlenL, Args, M, Oif, OffsetL, Ip6fMfL, TableargL, IpPtr});
 	}
 
 	void
 	emit_prob()
 	{
+		// rule_prob(int *match, ipfw_insn *cmd)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleProb, {Match, Cmd});
 	}
 
 	void
 	emit_verrevpath()
 	{
+		// rule_verrevpath(int *match, struct ifnet *oif, struct mbuf *m, int is_ipv6, struct ip_fw_args *args, struct in_addr *src_ip)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Irb.CreateCall(RuleVerrevpath, {Match, Oif, M, IsIpv4L, Args, SrcIp});
 	}
 
 	void
 	emit_versrcreach()
 	{
+		//  rule_versrcreach(int *match, u_int hlen, struct ifnet *oif, int is_ipv6, struct ip_fw_args *args, struct in_addr *src_ip)
+		Value *HlenL = Irb.CreateLoad(Hlen);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleVersrcreach, {Match, HlenL, Oif, IsIpv6L, Args, SrcIp});
 	}
 
 	void
 	emit_antispoof()
 	{
+		//  rule_antispoof(int *match, struct ifnet *oif, u_int hlen, int is_ipv4, int is_ipv6, struct in_addr *src_ip, struct ip_fw_args *args, struct mbuf *m)
+		Value *HlenL = Irb.CreateLoad(Hlen);
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleAntispoof, {Match, Oif, HlenL, IsIpv4L, IsIpv6L, SrcIp, Args, M});
 	}
 
 	void
 	emit_ipsec()
 	{
+#ifdef IPSEC
+		// rule_ipsec(int *match, struct mbuf *m)
+		Irb.CreateCall(RuleIpsec, {Match, M});
+#endif /* IPSEC */
 	}
 
 	void
 	emit_ip6_src()
 	{
+#ifdef INET6
+		// rule_ip6_src(int *match, int is_ipv6, struct ip_fw_args *args, ipfw_insn *cmd)
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleIp6Src, {Match, IsIpv6L, Args, CmdL});
+#endif /* INET6 */
 	}
 
 	void
 	emit_ip6_dst()
 	{
+#ifdef INET6
+		// rule_ip6_dst(int *match, int is_ipv6, struct ip_fw_args *args, ipfw_insn *cmd)
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleIp6Dst, {Match, IsIpv6L, Args, CmdL});
+#endif /* INET6 */
 	}
 
 	void
 	emit_ip6_dst_mask()
 	{
+#ifdef INET6
+		// rule_ip6_dst_mask(int *match, struct ip_fw_args *args, ipfw_insn *cmd, int cmdlen, int is_ipv6)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleIp6DstMask, {Match, IsIpv6L, Args, CmdL});
+#endif /* INET6 */
 	}
 
 	void
 	emit_flow6id()
 	{
+#ifdef INET6
+		// rule_flow6id(int *match, int is_ipv6, struct ip_fw_args *args, ipfw_insn *cmd)
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleFlow6id, {Match, IsIpv6L, Args, CmdL});
+#endif /* INET6 */
 	}
 
 	void
 	emit_ext_hdr()
 	{
+#ifdef INET6
+		// rule_ext_hdr(int *match, int is_ipv6, uint16_t ext_hd, ipfw_insn *cmd)
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *ExtHdL = Irb.CreateLoad(ExtHd);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleExtHdr, {Match, IsIpv6L, ExtHdL, CmdL});
+#endif /* INET6 */
 	}
 
 	void
 	emit_ip6()
 	{
+#ifdef INET6
+		// rule_ip6(int *match, int is_ipv6)
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Irb.CreateCall(RuleExtHdr, {Match, IsIpv6L});
+#endif /* INET6 */
 	}
 
 	void
 	emit_ip4()
 	{
+		// rule_ip4(int *match, int is_ipv4)
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Irb.CreateCall(RuleIp4, {Match, IsIpv4L});
 	}
 
 	void
 	emit_tag()
 	{
+		// rule_tag(int *match, ipfw_insn *cmd, struct mbuf *m, uint32_t tablearg)
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleTag, {Match, CmdL, M, TableargL});
 	}
 
 	void
 	emit_fib()
 	{
+		// rule_fib(int *match, struct ip_fw_args *args, ipfw_insn *cmd)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleFib, {Match, Args, CmdL});
 	}
 
 	void
 	emit_sockarg()
 	{
+		// rule_sockarg(int *match, int is_ipv6, uint8_t proto, struct in_addr *dst_ip, struct in_addr *src_ip, uint16_t dst_port, uint16_t src_port, struct ip_fw_args *args, uint32_t *tablearg)
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *DstPortL = Irb.CreateLoad(DstPort);
+		Value *SrcPortL = Irb.CreateLoad(SrcPort);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Irb.CreateCall(RuleSockarg, {Match, IsIpv6L, ProtoL, DstIp, SrcIp, DstPortL, SrcPortL, Args, TableargL});
 	}
 
 	void
 	emit_tagged()
 	{
+		// rule_tagged(int *match, ipfw_insn *cmd, int cmdlen, struct mbuf *m, uint32_t tablearg)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Irb.CreateCall(RuleTagged, {Match, CmdL, CmdlenL, M, TableargL});
 	}
 
 	/*
@@ -1844,59 +2036,120 @@ class ipfwJIT {
 	void
 	emit_callreturn()
 	{
+		// rule_callreturn(ipfw_insn *cmd, struct mbuf *m, struct ip_fw *f, struct ip_fw_chain *chain, uint32_t tablearg, int pktlen, int *skip_or, int *cmdlen, int *f_pos, int *l)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Value *PktlenL = Irb.CreateLoad(Pktlen);
+		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		Irb.CreateCall(RuleCallreturn, {CmdL, M, F, Chain, TableargL, PktlenL, SkipOr, CmdlenL, FPos, L});
 	}
 
 	void
 	emit_reject()
 	{
+		// rule_reject(u_int hlen, int is_ipv4, u_short offset, uint8_t proto, void *ulp, struct mbuf *m, struct in_addr *dst_ip, struct ip_fw_args *args, ipfw_insn *cmd, uint16_t iplen, struct ip *ip)
+		Value *HlenL = Irb.CreateLoad(Hlen);
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *IplenL = Irb.CreateLoad(Iplen);
+		Irb.CreateCall(RuleReject, {HlenL, IsIpv4L, OffsetL, ProtoL, Ulp, M, DstIp, Args, CmdL, IplenL, IpPtr});
 	}
 
 	void
 	emit_unreach6()
 	{
+#ifdef INET6
+		// rule_unreach6(u_int hlen, int is_ipv6, u_short offset, uint8_t proto, uint8_t icmp6_type, struct mbuf *m, struct ip_fw_args *args, ipfw_insn *cmd, struct ip *ip)
+		Value *HlenL = Irb.CreateLoad(Hlen);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *Icmp6TypeL = Irb.CreateLoad(Icmp6TypeL);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleUnreach6, {HlenL, IsIpv6L, OffsetL, ProtoL, Icmp6TypeL, M, Args, CmdL, Ip});
+#endif /* INET6 */
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_deny()
 	{
-		// rule_deny(&l, &done, &retval);
+		// rule_deny(int *l, int *done, int *retval)
 		Irb.CreateCall(RuleDeny, {L, Done, Retval});
 	}
 
 	void
 	emit_forward_ip()
 	{
+		// rule_forward_ip(struct ip_fw_args *args, ipfw_dyn_rule *q, struct ip_fw *f, int dyn_dir, ipfw_insn *cmd, uint32_t tablearg, int *retval, int *l, int *done)
+		Value *DynDirL = Irb.CreateLoad(DynDir);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Value *RetvalL = Irb.CreateLoad(Retval);
+		Irb.CreateCall(RuleForwardIp, {Args, Q, F, DynDirL, CmdL, TableargL, RetvalL, L, Done});
 	}
 
 	void
 	emit_forward_ip6()
 	{
+#ifdef INET6
+		// rule_forward_ip6(struct ip_fw_args *args, ipfw_dyn_rule *q, struct ip_fw *f, int dyn_dir, ipfw_insn *cmd, int *retval, int *l, int *done)
+		Value *DynDirL = Irb.CreateLoad(DynDir);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *RetvalL = Irb.CreateLoad(Retval);
+		Irb.CreateCall(RuleForwardIp6, {Args, Q, F, DynDirL, CmdL, Retval, L, Done});
+#endif /* INET6 */
 	}
 
 	void
 	emit_ngtee()
 	{
+		// rule_ngtee(struct ip_fw_args *args, int f_pos, struct ip_fw_chain *chain, ipfw_insn *cmd, uint32_t tablearg, int *retval, int *l, int *done)
+		Value *FPosL = Irb.CreateLoad(FPos);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Irb.CreateCall(RuleNgtee, {Args, FPosL, Chain, FPosL, Chain, CmdL, TableargL, Retval, L, Done});
 	}
 
 	void
 	emit_setfib()
 	{
+		// rule_setfib(struct ip_fw *f, int pktlen, uint32_t tablearg, ipfw_insn *cmd, struct mbuf *m, struct ip_fw_args *args, int *l)
+		Value *PktlenL = Irb.CreateLoad(Pktlen);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleSetfib, {F, PktlenL, TableargL, CmdL, M, Args, L});
 	}
 
 	void
 	emit_setdscp()
 	{
+		// rule_setdscp(ipfw_insn *cmd, struct ip *ip, int is_ipv4, int is_ipv6, uint32_t tablearg, struct ip_fw *f, int pktlen, int *l)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Value *PktlenL = Irb.CreateLoad(Pktlen);
+		Irb.CreateCall(RuleSetdscp, {CmdL, IpPtr, IsIpv4L, IsIpv6L, TableargL, F, PktlenL, L});
 	}
 
 	void
 	emit_nat()
 	{
+		// rule_nat(struct ip_fw_args *args, int f_pos, struct ip_fw_chain *chain, ipfw_insn *cmd, struct mbuf *m, uint32_t tablearg, int *retval, int *done, int *l)
+		Value *FPosL = Irb.CreateLoad(FPos);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Irb.CreateCall(RuleNat, {Args, FPosL, Chain, CmdL, M, TableargL, Retval, Done, L});
 	}
 
 	void
 	emit_reass()
 	{
+		// rule_reass(struct ip_fw *f, int f_pos, struct ip_fw_chain *chain, int pktlen, struct ip *ip, struct ip_fw_args *args, struct mbuf *m, int *retval, int *done, int *l)
+		Value *PktlenL = Irb.CreateLoad(Pktlen);
+		Irb.CreateCall(RuleReass, {F, FPos, Chain, PktlenL, IpPtr, Args, M, Retval, Done, L});
 	}
 };
 
