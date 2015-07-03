@@ -111,7 +111,7 @@ class ipfwJIT {
 	Value *Iplen; //unsigned
 	Value *Pktlen;
 	Value *Etype; //unsigned
-	Value *Dyn_dir;
+	Value *DynDir;
 	Value *Q;
 	Value *Ulp;
 
@@ -768,8 +768,8 @@ class ipfwJIT {
 		Etype = Irb.CreateAlloca(Int16Ty, nullptr, "etype");
 		Irb.CreateStore(ConstantInt::get(Int16Ty, 0), Etype);
 
-		Dyn_dir = Irb.CreateAlloca(Int32Ty, nullptr, "dyn_dir");
-		Irb.CreateStore(ConstantInt::get(Int32Ty, MATCH_UNKNOWN), Dyn_dir);
+		DynDir = Irb.CreateAlloca(Int32Ty, nullptr, "dyn_dir");
+		Irb.CreateStore(ConstantInt::get(Int32Ty, MATCH_UNKNOWN), DynDir);
 
 		Q = Irb.CreateAlloca(Ipfw_dyn_rulePtrTy, nullptr, "q");
 		Irb.CreateStore(ConstantPointerNull::get(Ipfw_dyn_rulePtrTy), Q);
