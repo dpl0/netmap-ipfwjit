@@ -53,8 +53,7 @@ Real packet I/O is possible using netmap info.iet.unipi.it/~luigi/netmap/ You
 can use a couple of VALE switches (part of netmap, included in ./tools/) to
 connect a source and sink to the userspace firewall, as follows:
 
-                s       f               f       d
-   [pkt-gen]-->--[valeA]-->--[kipfw]-->--[valeB]-->--[pkt-gen]
+   [pkt-gen]-->--[valeA:s]-->--[kipfw]-->--[valeA:r]-->--[pkt-gen]
 
 The commands to run (in separate windows) are
 	# preliminarly, load the netmap module if needed
