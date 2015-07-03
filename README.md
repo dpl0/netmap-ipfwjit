@@ -1,3 +1,6 @@
+Note: This README is taken from the original netmap-ipfw, and adopted as needed
+here.
+
 netmap-ipfwjit
 ==============
 # README FILE FOR IPFW-USER ON TOP OF NETMAP
@@ -30,10 +33,12 @@ with small modifications listed below
 		revise snprintf, SNPARGS (MAC)
 
 
-sbin/ipfw and the kernel counterpart communicate throuugh a
+sbin/ipfw and the kernel counterpart communicate through a
 TCP socket (localhost:5555) carrying the raw data that would
 normally be carried on seg/getsockopt.
 
+Testing
+=======
 For testing purposes, opening a telnet session to port 5556 and
 typing some bytes will start a fake 'infinite source' so you can
 check how fast your ruleset works.
@@ -46,16 +51,15 @@ check how fast your ruleset works.
 
 (on an i7-3400 I get about 15 Mpps)
 
-Real packet I/O is possible using netmap info.iet.unipi.it/~luigi/netmap/
-You can use a couple of VALE switches (part of netmap) to connect
-a source and sink to the userspace firewall, as follows
+Real packet I/O is possible using netmap info.iet.unipi.it/~luigi/netmap/ You
+can use a couple of VALE switches (part of netmap, included in ./tools/) to
+connect a source and sink to the userspace firewall, as follows:
 
-                s       f               f       d    
+                s       f               f       d
    [pkt-gen]-->--[valeA]-->--[kipfw]-->--[valeB]-->--[pkt-gen]
 
 The commands to run (in separate windows) are
-
-	# preliminarly, load the netmap module
+	# preliminarly, load the netmap module if needed
 	sudo kldload netmap.ko
 
 	# connect the firewall to two vale switches
@@ -73,6 +77,28 @@ The commands to run (in separate windows) are
 	# plain again with the firewall and enjoy
 	ipfw/ipfw show  # or other
 
-On my i7-3400 I get about 6.5 Mpps with a single rule, and about 2.2 Mpps
-when going through a dummynet pipe. This is for a single process handling
-the traffic.
+Luigi reports that on his i7-3400 he got about 6.5 Mpps with a single
+rule, and about 2.2 Mpps when going through a dummynet pipe. This is for a
+single process handling the traffic.
+
+Simple benchmarch
+=================
+We executed and tested it with just one rule (accept all), and 1k packets and
+this is what we found (This was done on a computer with a 3 year-old i7):
+- Compilation time: 130ms (Amortized when 41440 packets are filtered).
+- Filtering time (JIT): 523us
+- Filtering time (Interpreter): 3664us
+
+This basically means we'll have a x7 speedup compared to the interpreter, and
+the more rules we have, the better the speedup will be.
+
+Tests and rulesets
+==================
+At some point, we'll test the firewall properly with a set of rulesets, that
+will be added to ./rulesets and commented adequately.
+
+Current state
+=============
+- The JIT compiler is not working.
+- All the commands except the flow-modifying ones should work well.
+
