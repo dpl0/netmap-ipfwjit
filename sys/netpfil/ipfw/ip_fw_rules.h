@@ -1571,7 +1571,7 @@ rule_antispoof(int *match, struct ifnet *oif, u_int hlen, int is_ipv4, int is_ip
 
 #ifdef IPSEC
 static IPFW_RULES_INLINE void
-rule_ipsec(int *match, struct mbuf *)
+rule_ipsec(int *match, struct mbuf *m)
 {
 	*match = (m_tag_find(m,
 	    PACKET_TAG_IPSEC_IN_DONE, NULL) != NULL);
