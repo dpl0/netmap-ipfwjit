@@ -167,18 +167,18 @@ class ipfwJIT {
 	Function *RuleIpSrcMe;
 #ifdef INET6
 	Function *RuleIp6SrcMe;
-#endif
+#endif /* INET6 */
 	Function *RuleIpSrcSet;
 	Function *RuleIpDst;
 	Function *RuleIpDstMe;
 #ifdef INET6
 	Function *RuleIp6DstMe;
-#endif
+#endif /* INET6 */
 	Function *RuleIpDstport;
 	Function *RuleIcmptype;
 #ifdef INET6
 	Function *RuleIcmp6type;
-#endif
+#endif /* INET6 */
 	Function *RuleIpopt;
 	Function *RuleIpver;
 	Function *RuleIpttl;
@@ -208,7 +208,7 @@ class ipfwJIT {
 		Function *RuleFlow6id;
 		Function *RuleExtHdr;
 		Function *RuleIp6;
-#endif
+#endif /* INET6 */
 	Function *RuleIp4;
 	Function *RuleTag;
 	Function *RuleFib;
@@ -225,12 +225,12 @@ class ipfwJIT {
 	Function *RuleReject;
 #ifdef INET6
 		Function *RuleUnreach6;
-#endif
+#endif /* INET6 */
 	Function *RuleDeny;
 	Function *RuleForwardIp;
 #ifdef INET6
 	Function *RuleForwardIp6;
-#endif
+#endif /* INET6 */
 	Function *RuleNgtee;
 	Function *RuleSetfib;
 	Function *RuleSetdscp;
@@ -490,7 +490,7 @@ class ipfwJIT {
 		RuleIp6SrcMe = mod->getFunction("rule_ip6_src_me");
 		if (RuleIp6SrcMe  == NULL)
 			err(1, "bitcode fault: RuleIp6SrcMe ");
-#endif
+#endif /* INET6 */
 
 		RuleIpSrcSet = mod->getFunction("rule_ip_src_set");
 		if (RuleIpSrcSet  == NULL)
@@ -506,7 +506,7 @@ class ipfwJIT {
 		RuleIp6DstMe = mod->getFunction("rule_ip6_dst_me");
 		if (RuleIp6DstMe  == NULL)
 			err(1, "bitcode fault: RuleIp6DstMe ");
-#endif
+#endif /* INET6 */
 
 		RuleIpDstport = mod->getFunction("rule_ip_dstport");
 		if (RuleIpDstport  == NULL)
@@ -519,7 +519,7 @@ class ipfwJIT {
 		RuleIcmp6type = mod->getFunction("rule_icmp6type");
 		if (RuleIcmp6type  == NULL)
 			err(1, "bitcode fault: RuleIcmp6type ");
-#endif
+#endif /* INET6 */
 
 		RuleIpopt = mod->getFunction("rule_ipopt");
 		if (RuleIpopt  == NULL)
@@ -604,7 +604,7 @@ class ipfwJIT {
 		RuleIp6 = mod->getFunction("rule_ip6");
 		if (RuleIp6  == NULL)
 			err(1, "bitcode fault: RuleIp6 ");
-#endif
+#endif /* INET6 */
 
 		RuleIp4 = mod->getFunction("rule_ip4");
 		if (RuleIp4  == NULL)
@@ -653,7 +653,7 @@ class ipfwJIT {
 		RuleUnreach6 = mod->getFunction("rule_unreach6");
 		if (RuleUnreach6  == NULL)
 			err(1, "bitcode fault: RuleUnreach6 ");
-#endif
+#endif /* INET6 */
 
 		RuleDeny = mod->getFunction("rule_deny");
 		if (RuleDeny  == NULL)
@@ -666,7 +666,7 @@ class ipfwJIT {
 		RuleForwardIp6 = mod->getFunction("rule_forward_ip6");
 		if (RuleForwardIp6  == NULL)
 			err(1, "bitcode fault: RuleForwardIp6 ");
-#endif
+#endif /* INET6 */
 
 		RuleNgtee = mod->getFunction("rule_ngtee");
 		if (RuleNgtee  == NULL)
@@ -792,6 +792,7 @@ class ipfwJIT {
 		Value *Ip = Irb.CreateLoad(IpPtr);
 		Value *UlpL = Irb.CreateLoad(Ulp);
 
+		// inspect_pkt(struct ip_fw_args *args, struct ip *ip, struct mbuf *m, struct in_addr *src_ip, struct in_addr *dst_ip, uint16_t *src_port, uint16_t *dst_port, uint16_t *etype, uint16_t *ext_hd, uint16_t *iplen, int *pktlen, int *is_ipv4, int *is_ipv6, u_int *hlen, uint8_t *proto, uint8_t *icmp6_type, u_short *ip6f_mf, u_short *offset, void *ulp)
 		Value *InspectPktCall = Irb.CreateCall(InspectPkt, {Args, Ip, M, SrcIp, 
 			DstIp, SrcPort, DstPort, Etype, ExtHd, Iplen, Pktlen, IsIpv4,
 			IsIpv6, Hlen, Proto, Icmp6Type, Ip6fMf, Offset, UlpL});
@@ -1020,6 +1021,7 @@ class ipfwJIT {
 		L = Irb.CreateAlloca(Int32Ty, nullptr, "l");
 		Cmdlen = Irb.CreateAlloca(Int32Ty, nullptr, "cmdlen");
 		SkipOr = Irb.CreateAlloca(Int32Ty, nullptr, "skipor");
+		// struct ip_fw *f;
 		F = Irb.CreateAlloca(Ip_fwPtrTy, nullptr, "f");
 
 		// uInt32_t tablearg = 0;
@@ -1324,15 +1326,13 @@ class ipfwJIT {
 
 
 	// Rules
-	// XXX Exec not tested.
 	void
 	emit_nop()
 	{
-		// rule_nop(&match);
+		// rule_nop(int *match)
 		Irb.CreateCall(RuleNop, Match);
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_forward_mac()
 	{
@@ -1345,13 +1345,11 @@ class ipfwJIT {
 		Irb.CreateCall(RuleForwardMac, {OpcodeL32});
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_jail()
 	{
 		// rule_jail(&match, offset, proto, cmd, args, ucred_lookup, ucred_cache);
 		// We wrote our own version because we don't have ucred_lookup.
-
 		BasicBlock *OffsetNZ = BasicBlock::Create(Con, "R_offsetnotzero", Func);
 		BasicBlock *OffsetZE = BasicBlock::Create(Con, "R_offsetiszero", Func);
 		BasicBlock *TCPorUDP = BasicBlock::Create(Con, "R_setmatchzero", Func);
@@ -1388,11 +1386,10 @@ class ipfwJIT {
 		Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Match);
 		Irb.CreateBr(Continue);
 
-		// Keep on with the for epilogue.
+		// Carry on at the for epilogue.
 		Irb.SetInsertPoint(Continue);
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_recv()
 	{
@@ -1401,7 +1398,6 @@ class ipfwJIT {
 		Irb.CreateCall(RuleRecv, {Match, CmdL, M, Chain, Tablearg});
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_xmit()
 	{
@@ -1410,7 +1406,6 @@ class ipfwJIT {
 		Irb.CreateCall(RuleXmit, {Match, Oif, CmdL, Chain, Tablearg});
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_via()
 	{
@@ -1437,7 +1432,6 @@ class ipfwJIT {
 		Irb.CreateCall(RuleMacType, {Match, Args, CmdL, CmdlenL, EtypeL});
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_frag()
 	{
@@ -1446,15 +1440,13 @@ class ipfwJIT {
 		Irb.CreateCall(RuleFrag, {Match, OffsetL});
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_in()
 	{
-		// rule_in(&match, oif);
+		// rule_in(int *match, struct ifnet *oif)
 		Irb.CreateCall(RuleIn, {Match, Oif});
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_layer2()
 	{
@@ -1479,7 +1471,6 @@ class ipfwJIT {
 		Irb.CreateCall(RuleProto, {Match, ProtoL, CmdL});
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_ip_src()
 	{
@@ -1493,10 +1484,12 @@ class ipfwJIT {
 	emit_ip_dst_lookup()
 	{
 		// XXX TODO: Recover the Values for Ucred*.
-		// rule_ip_dst_lookup(&match, cmd, cmdlen, args, &tablearg, 
-		//                    is_ipv4, is_ipv6, ip, &dst_ip, &src_ip, dst_port,
-		//                    src_port, offset, proto, ucred_lookup, 
-		//                    ucred_cache, chain);
+		// rule_ip_dst_lookup(int *match, ipfw_insn *cmd, int cmdlen, struct
+		// ip_fw_args *args, uint32_t *tablearg, int is_ipv4, int is_ipv6,
+		// struct ip *ip, struct in_addr *dst_ip, struct in_addr *src_ip,
+		// uint16_t dst_port, uint16_t src_port, u_short offset, uint8_t proto,
+		// int ucred_lookup, void *ucred_cache, struct ip_fw_chain *chain)
+		//
 		// Irb.CreateCall(RuleIpDstLookup, {Match, CmdL, CmdlenL, Args, Tablearg,
 		// 			   IsIpv4L, IsIpv6L, IpL, DstIp, SrcIp, DstPort, SrcPort,
 		// 			   OffsetL, ProtoL, UcredLookup, UcredCache, Chain});
@@ -1522,10 +1515,10 @@ class ipfwJIT {
 	{
 	}
 
-	// XXX Exec not tested.
 	void
 	emit_ip_dst()
 	{
+		// rule_ip_dst(int *match, int is_ipv4, ipfw_insn *cmd, struct in_addr *dst_ip)
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *CmdL = Irb.CreateLoad(Cmd);
 		Irb.CreateCall(RuleIpDst, {Match, IsIpv4L, CmdL, DstIp});
@@ -1768,36 +1761,60 @@ class ipfwJIT {
 	void
 	emit_keep_state()
 	{
+		// rule_keep_state(int *match, struct ip_fw *f, ipfw_insn *cmd, struct ip_fw_args *args, uint32_t tablearg, int *retval, int *l, int *done)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Irb.CreateCall(RuleKeepState, {Match, F, CmdL, Args, TableargL, Retval, L, Done});
 	}
 
 	void
 	emit_check_state()
 	{
+		// rule_check_state(int *match, int *dyn_dir, ipfw_dyn_rule *q, struct ip_fw_args *args, uint8_t proto, void *ulp, int pktlen, struct ip_fw *f, int *f_pos, struct ip_fw_chain *chain, ipfw_insn *cmd, int *cmdlen, int *l)
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Value *PktlenL = Irb.CreateLoad(Pktlen);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleCheckState, {Match, DynDir, Q, Args, ProtoL, UlpL, PktlenL, F, FPos, Chain, CmdL, Cmdlen, L});
 	}
 
 	void
 	emit_accept()
 	{
-		// rule_deny(&l, &done, &retval);
-		Irb.CreateCall(RuleAccept, {L, Done, Retval});
+		// rule_accept(int *retval, int *l, int *done)
+		Irb.CreateCall(RuleAccept, {Retval, L, Done});
 	}
 
 	void
 	emit_queue()
 	{
+		// rule_queue(struct ip_fw_args *args, int f_pos, struct ip_fw_chain *chain, ipfw_insn *cmd, uint32_t tablearg, int *retval, int *l, int *done)
+		Value *FPosL = Irb.CreateLoad(FPos);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Irb.CreateCall(RuleQueue, {Args, FPosL, Chain, CmdL, TableargL, Retval, L, Done});
 	}
 
 	void
 	emit_tee()
 	{
+		// rule_tee(int *l, int *done, int *retval, ipfw_insn *cmd, struct ip_fw_args *args, int f_pos, uint32_t tablearg, struct ip_fw_chain *chain)
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *FPosL = Irb.CreateLoad(FPos);
+		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Irb.CreateCall(RuleTee, {L, Done, Retval, CmdL, Args, FPosL, TableargL, Chain});
 	}
 
 	void
 	emit_count()
 	{
+		// rule_count(int *l, struct ip_fw *f, int pktlen)
+		Value *PktlenL = Irb.CreateLoad(Pktlen);
+		Irb.CreateCall(RuleTee, {L, F, PktlenL});
 	}
 
-	// TODO
+	// TODO - We have to do this directly in LLVM, given that the control flow
+	// is modified.
 	void
 	emit_skipto()
 	{
@@ -2018,7 +2035,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 				/* FALLTHROUGH */
 			case O_IP6_SRC_ME:
 				compiler.emit_ip6_src_me();
-#endif
+#endif /* INET6 */
 				break;
 
 			case O_IP_DST_SET:
@@ -2037,7 +2054,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 				/* FALLTHROUGH */
 			case O_IP6_DST_ME:
 				compiler.emit_ip6_dst_me();
-#endif
+#endif /* INET6 */
 				break;
 
 
@@ -2165,7 +2182,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 			case O_IP6:
 				compiler.emit_ip6();
 				break;
-#endif
+#endif /* INET6 */
 
 			case O_IP4:
 				compiler.emit_ip4();
@@ -2273,7 +2290,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 			case O_UNREACH6:
 				compiler.emit_unreach6();
 				/* FALLTHROUGH */
-#endif
+#endif /* INET6 */
 			case O_DENY:
 				compiler.emit_deny();
 				break;
@@ -2286,7 +2303,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 			case O_FORWARD_IP6:
 				compiler.emit_forward_ip6();
 				break;
-#endif
+#endif /* INET6 */
 
 			case O_NETGRAPH:
 			case O_NGTEE:
