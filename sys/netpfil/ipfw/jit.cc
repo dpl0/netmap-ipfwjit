@@ -969,8 +969,7 @@ class ipfwJIT {
 
 		//Compile
 		std::string errstr;
-
-		EngineBuilder EB = EngineBuilder(std::unique_ptr<Module>(mod));
+		EngineBuilder EB = EngineBuilder(std::unique_ptr<Module>(mod).get());
 		//EB.setEngineKind(EngineKind::Kind::JIT);
 		EB.setErrorStr(&errstr);
 		EB.setOptLevel(CodeGenOpt::Level::Aggressive);
