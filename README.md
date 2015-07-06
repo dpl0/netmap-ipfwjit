@@ -75,6 +75,11 @@ Luigi reports that on his i7-3400 he got about 6.5 Mpps with a single rule, and
 about 2.2 Mpps when going through a dummynet pipe. This is for a single process
 handling the traffic.
 
+Unfortunately, this is not enough to test it properly, as we'll have to test
+different protocols besides IP, which is what ./tools/pkt-gen does. At some
+point, we'll test the firewall properly with a set of rulesets, that will be
+added to ./rulesets and commented adequately.
+
 Simple benchmarch
 =================
 We executed and tested it with just one rule (accept all), and 1k packets and
@@ -85,14 +90,6 @@ this is what we found (This was done on a computer with a 3 year-old i7):
 
 This basically means we'll have a x7 speedup compared to the interpreter, and
 the more rules we have, the better the speedup will be.
-
-Tests and rulesets
-==================
-At some point, we'll test the firewall properly with a set of rulesets, that
-will be added to ./rulesets and commented adequately.
-
-In order to test it properly we'll need to use a variety of protocols, not only
-IP, which is what pkt-gen (at ./tools) does.
 
 Current state
 =============
