@@ -91,6 +91,9 @@ Tests and rulesets
 At some point, we'll test the firewall properly with a set of rulesets, that
 will be added to ./rulesets and commented adequately.
 
+In order to test it properly we'll need to use a variety of protocols, not only
+IP, which is what pkt-gen (at ./tools) does.
+
 Current state
 =============
 - The JIT compiler is not working.
