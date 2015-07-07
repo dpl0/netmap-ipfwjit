@@ -1,0 +1,12 @@
+GPATH
+GRTAGS
+GTAGS
+cscope*
+*.o
+*.swp
+.*.vim
+llvm
+objs
+ipfw/ipfw
+kipfw
+rules.bc
