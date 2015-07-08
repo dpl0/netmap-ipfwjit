@@ -963,7 +963,7 @@ class ipfwJIT {
 		PerFunctionPasses->doFinalization();
 		delete PerFunctionPasses;
 
-		// We don't need it anymore.
+		// We only used the function to get symbols.
 		Function *vf = mod->getFunction("voidfunction");
 		vf->eraseFromParent();
 
@@ -2185,7 +2185,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 	if (chain->n_rules == 0)
 		return (NULL);
 
-	test_compilation();
+	//test_compilation();
 
 	ipfwJIT compiler(chain->n_rules);
 
