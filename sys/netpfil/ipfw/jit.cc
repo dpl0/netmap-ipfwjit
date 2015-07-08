@@ -982,8 +982,9 @@ class ipfwJIT {
 			exit(1);
 		}
 
-		// XXX We should use a NON deperecated function.
-		return (funcptr)EE->getPointerToFunction(mod->getFunction("ipfw_chk_jit"));
+		// XXX We should use a non-deprecated function.
+		//return (funcptr)EE->getPointerToFunction(mod->getFunction("ipfw_chk_jit"));
+		return (funcptr)EE->getPointerToFunction(Func);
 	}
 
 	void
