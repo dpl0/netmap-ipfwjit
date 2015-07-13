@@ -19,7 +19,6 @@ $cmd 00005 allow all from any to any via $control
 $cmd 00010 allow all from any to any via $loop
 
 # Pass only UDP packets between cxl0 and cxl1
-
 $cmd 00500 allow udp from any to any in via $in
 
 # Everything else is denied and logged
