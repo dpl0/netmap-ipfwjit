@@ -949,7 +949,7 @@ class ipfwJIT {
 	compile()
 	{
 		InitializeNativeTarget();
-		LLVMLinkInJIT();
+		LLVMLinkInMCJIT();
 
 		// Optimise
 		PassManagerBuilder PMBuilder;
@@ -969,13 +969,14 @@ class ipfwJIT {
 
 		//Compile
 		std::string errstr;
-		EngineBuilder EB = EngineBuilder(std::unique_ptr<Module>(mod).get());
-		EB.setEngineKind(EngineKind::JIT);
-		EB.setErrorStr(&errstr);
-		EB.setOptLevel(CodeGenOpt::Level::Aggressive);
-		EB.setVerifyModules(true);
+		EngineBuilder EB = EngineBuilder(std::move(mod));
+		ExecutionEngine *EE = EB.setEngineKind(EngineKind::JIT)
+			.setUseMCJIT(true)
+			.setOptLevel(CodeGenOpt::Level::Aggressive)
+			.setVerifyModules(true)
+			.setErrorStr(&errstr)
+			.create();
 
-		ExecutionEngine *EE = EB.create();
 		if (!EE) {
 			fprintf(stderr, "Compilation error: %s\n", errstr.c_str());
 			exit(1);
