@@ -34,6 +34,7 @@ __FBSDID("$FreeBSD: head/sys/netpfil/ipfw/ip_fw_pfil.c 243882 2012-12-05 08:04:2
 #error IPFIREWALL requires INET.
 #endif /* INET */
 
+#include <err.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/malloc.h>
@@ -180,7 +181,6 @@ ipfw_chk_wrapper(struct ip_fw_args *args)
 	ret = ipfw_chk_jit(args, chain);
 	IPFW_PF_RUNLOCK(chain);
 
-	#include <err.h>
 	if (counter >= 500){
 		gettimeofday(&third, NULL);
 		timediff(&first, &second, &dif1);
