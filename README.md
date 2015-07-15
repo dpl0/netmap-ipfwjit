@@ -57,7 +57,7 @@ The commands to run (in separate windows) are:
 	sudo kldload netmap.ko
 
 	# connect the firewall to two vale switches
-	./kipfw valeA:s valeA:r &
+	./kipfw valeA:t valeA:r &
 
 	# configure ipfw/dummynet
 	ipfw/ipfw show	# or other
@@ -66,7 +66,7 @@ The commands to run (in separate windows) are:
 	pkt-gen -i valeA:r -f rx
 
 	# start an infinite source
-	pkt-gen -i valeA:s -f tx
+	pkt-gen -i valeA:t -f tx
 
 	# plain again with the firewall and enjoy
 	ipfw/ipfw show  # or other
