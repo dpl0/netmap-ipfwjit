@@ -1,6 +1,14 @@
 #
 # this is a gnu makefile
 
+# Use LLVM 3.5.
+LLVM_CONFIG=/home/dpl/wrk/gsoc15/llvm_custom/bin/llvm-config
+CC=clang35
+CCXX=clang++35
+LLVM_VERSION=-DLLVM_MAJOR=3 -DLLVM_MINOR=5
+LLVM_CXXFLAGS=`${LLVM_CONFIG} --cxxflags`
+
+
 BSD_HEAD ?= /home/luigi/FreeBSD/head
 NETMAP_INC ?= ../netmap-release/sys
 

@@ -93,10 +93,11 @@ IPFW_CFLAGS= -DINET
 E_CFLAGS += -Dradix
 MOD := kipfw
 
-LIBS=`llvm-config35 --ldflags --system-libs --libs all`
+LLVM_LIBS=`${LLVM_CONFIG} --ldflags --system-libs --libs all`
 CFLAGS = $(E_CFLAGS)
 
 IPFW_OBJS= $(IPFW_SRCS:%.c=%.o)
+IPFW_OBJS+= jit.o
 
 all: include_e $(MOD)
 
@@ -136,15 +137,16 @@ EDIRS= $(subst EFILES_,,$(filter EFILES_%,$(.VARIABLES)))
 EFILES = $(foreach i,$(EDIRS),$(subst $(empty) , $(i)/, $(EFILES_$(i):  = )))
 
 #Flags needed for jit.cc
-J_CFLAGS += $(INCDIRS) $(NETMAP_FLAGS)
-J_CFLAGS += -DINET -D_KERNEL -D_BSD_SOURCE -DKERNEL_SIDE -DUSERSPACE
-J_CFLAGS += -I ../extra/ -Wno-extern-c-compat -Wno-comment #-O2 -Wall -Werror
+JIT_CFLAGS += $(INCDIRS) $(NETMAP_FLAGS)
+JIT_CFLAGS += -DINET -D_KERNEL -D_BSD_SOURCE -DKERNEL_SIDE -DUSERSPACE
+JIT_CFLAGS += -I ../extra/ -Wno-extern-c-compat -Wno-comment #-O2 -Wall -Werror
+JIT_CFLAGS += ${LLVM_CXXFLAGS} $(LLVM_VERSION)
 
 include_e:
 	-@echo "Building $(OBJPATH)/include_e ..."
-	-$(HIDE) rm -rf $(OBJPATH)/include_e opt_*
-	-$(HIDE) mkdir -p $(OBJPATH)/include_e
-	-$(HIDE) (cd $(OBJPATH)/include_e; mkdir -p $(EDIRS); touch $(EFILES) )
+	-$(HIDE)rm -rf $(OBJPATH)/include_e opt_*
+	-$(HIDE)mkdir -p $(OBJPATH)/include_e
+	-$(HIDE)(cd $(OBJPATH)/include_e; mkdir -p $(EDIRS); touch $(EFILES) )
 
 $(IPFW_OBJS) : ../extra/glue.h
 
@@ -160,13 +162,17 @@ radix.o:#	CFLAGS += -U_KERNEL
 # session.o:	CFLAGS = -O2
 nm_util.o:	CFLAGS = -O2 -Wall -Werror $(NETMAP_FLAGS)
 
-$(MOD): $(IPFW_OBJS) jit.o
+# kipfw 
+# XXX Do something with this crap.
+LINKTIME_FLAGS=-std=c++11 -Wno-zero-length-array -I/usr/local/include -I/usr/home/dpl/wrk/llvm_custom/include  -fPIC -fvisibility-inlines-hidden -Wall -W -Wno-unused-parameter -Wwrite-strings -Wmissing-field-initializers -pedantic -Wno-long-long -Wcovered-switch-default -Wnon-virtual-dtor -std=c++11 -ffunction-sections -fdata-sections -g  -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS $(LLVM_VERSION)
+$(MOD): $(IPFW_OBJS)
 	$(MSG) "   LD $@"
-	$(HIDE) clang++ -Wl,--start-group $(LIBS) $^ -Wl,--end-group -o $@
+	$(HIDE)${CCXX} $(LINKTIME_FLAGS) -o $@ -Wl,--export-dynamic $^ ${LLVM_LIBS}
 
 jit.o: jit.cc ../rules.bc
 	$(MSG) "   CC $<"
-	$(HIDE)@clang++ -c $(J_CFLAGS) `llvm-config35 --cxxflags` -g -O0 -o ./jit.o ../sys/netpfil/ipfw/jit.cc
+	$(HIDE)${CCXX} $(JIT_CFLAGS) -g -O0 -c -o ./jit.o ../sys/netpfil/ipfw/jit.cc
+
 clean:
 	-rm -f *.o $(DN) $(MOD)
 	-rm -rf include_e

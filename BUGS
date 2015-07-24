@@ -1,0 +1,58 @@
+# This file contains the information for the bugs we've encountered during the
+# development process. It sort of follows the guideline of:
+# http://courses.cse.tamu.edu/cscd606fall13/walker/Papers/BugScientificMethod.pdf
+
+1 BUG: Firewall can't compile code.
+	Comments: We think this happens due to the change in the LLVM version we're
+	using now. During the last summer, I used devel/llvm-devel, and we're now
+	settling with LLVM 3.5, and I'll probably end up porting to the C API.
+	Error message(s):
+		* (LLVM ERROR: Target does not support MC emission!)
+		* () (empty errsrt after creating ExecutionEngine).
+		* (LLVM ERROR: Inline asm not supported by this streamer because we
+			don't have an asm parser for this target) When using
+			InitializeNativeTargetAsmParser().
+		* KERNEL PANIC: Happens when at initialization we call:
+			InitializeNativeTarget();
+			InitializeNativeTargetAsmPrinter();
+			InitializeNativeTargetAsmParser();
+			LLVMLinkInMCJIT();
+			This is not expected at all. We're supposedly playing at userland.
+
+
+	TEST: LLVM build is broken.
+		PROOF: Use same LLVM build with another compiler using MCJIT as well.
+		DISPROVEN: Another LLVM project works perfectly
+			(CompileTeaching/MysoreScript).
+
+	TEST: Project is not build adequatelly.
+		PROOF: Compile a different compiler and compare results.
+		DISPROVEN: Changed the Makefile to reflect the compiling and linking
+			process of another working compiler (CompileTeaching/MysoreScript).
+			It works perfectly.
+
+	TEST: Final IR is wrong.
+		PROOF: Dump IR into a file and compile with clang's assembler.
+			DISPROVEN: Not needed having a module verfier.
+		PROOF: Use the runtime code checker. (.setVerifyModule(true))
+			DISPROVEN: Even when checking the module, it doesn't work.
+
+	TEST: Function and module optimization are the culprit.
+		PROOF: Just do not perform any optimization. I also didn't deleted
+		"void_function" a function used so that we can use an initial bitcode
+		with the needed structs and type information.
+		DISPROVEN: Not working despite change.
+
+	TEST: LLVM is initialized inadequately.
+		PROOF: Perform the minimal initialization, see if it works.
+			DISPROVEN: It doesn't work this way.
+		PROOF: Myscript is correct, therefore, we can debug its initialization
+			and perform it ourselves in the same way.
+			Comment: Instead of run a debugger, I'm trying to use something to
+				get a function call graph. That should do the work too.
+				I ended up copying the code from MysoreScript after searching for
+				too long.
+			DISPROVEN: Still getting the "Target does not support MC emission!"
+				error.
+
+2 BUG: Kernel panic when calling some LLVM functions. (See BUG 1)
