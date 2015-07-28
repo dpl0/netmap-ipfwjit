@@ -25,12 +25,6 @@
 		DISPROVEN: Another LLVM project works perfectly
 			(CompileTeaching/MysoreScript).
 
-	TEST: Project is not build adequatelly.
-		PROOF: Compile a different compiler and compare results.
-		DISPROVEN: Changed the Makefile to reflect the compiling and linking
-			process of another working compiler (CompileTeaching/MysoreScript).
-			It works perfectly.
-
 	TEST: Final IR is wrong.
 		PROOF: Dump IR into a file and compile with clang's assembler.
 			DISPROVEN: Not needed having a module verfier.
@@ -54,5 +48,13 @@
 				too long.
 			DISPROVEN: Still getting the "Target does not support MC emission!"
 				error.
+
+	TEST: Project is not build adequatelly.
+		Comment: This has been double checked now.
+		PROOF: Compile a different compiler and compare results.
+		DISPROVEN: Changed the Makefile to reflect the compiling and linking
+			process of another working compiler (CompileTeaching/MysoreScript).
+			It works perfectly.
+
 
 2 BUG: Kernel panic when calling some LLVM functions. (See BUG 1)

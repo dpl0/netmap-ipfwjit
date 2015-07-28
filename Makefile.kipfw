@@ -93,7 +93,6 @@ IPFW_CFLAGS= -DINET
 E_CFLAGS += -Dradix
 MOD := kipfw
 
-LLVM_LIBS=`${LLVM_CONFIG} --ldflags --system-libs --libs all`
 CFLAGS = $(E_CFLAGS)
 
 IPFW_OBJS= $(IPFW_SRCS:%.c=%.o)
@@ -136,12 +135,6 @@ EDIRS= $(subst EFILES_,,$(filter EFILES_%,$(.VARIABLES)))
 #       and the ":  = " substitution packs spaces into one.
 EFILES = $(foreach i,$(EDIRS),$(subst $(empty) , $(i)/, $(EFILES_$(i):  = )))
 
-#Flags needed for jit.cc
-JIT_CFLAGS += $(INCDIRS) $(NETMAP_FLAGS)
-JIT_CFLAGS += -DINET -D_KERNEL -D_BSD_SOURCE -DKERNEL_SIDE -DUSERSPACE
-JIT_CFLAGS += -I ../extra/ -Wno-extern-c-compat -Wno-comment #-O2 -Wall -Werror
-JIT_CFLAGS += ${LLVM_CXXFLAGS} $(LLVM_VERSION)
-
 include_e:
 	-@echo "Building $(OBJPATH)/include_e ..."
 	-$(HIDE)rm -rf $(OBJPATH)/include_e opt_*
@@ -153,7 +146,8 @@ $(IPFW_OBJS) : ../extra/glue.h
 ip_fw2.o ip_dummynet.o: # EFLAGS= -include missing.h
 ip_fw2.o: jit.o
 
-#Generate the actual bytecode to be used
+# Generate the actual bytecode to be used, 
+# since we don't want to get our symbols removed, we're compiling with -O0.
 ../rules.bc:
 	$(CC) $(CFLAGS) -O0 -emit-llvm -c -o ../rules.bc ../sys/netpfil/ipfw/ip_fw_rules.c
 
@@ -162,16 +156,22 @@ radix.o:#	CFLAGS += -U_KERNEL
 # session.o:	CFLAGS = -O2
 nm_util.o:	CFLAGS = -O2 -Wall -Werror $(NETMAP_FLAGS)
 
-# kipfw 
-# XXX Do something with this crap.
-LINKTIME_FLAGS=-std=c++11 -Wno-zero-length-array -I/usr/local/include -I/usr/home/dpl/wrk/llvm_custom/include  -fPIC -fvisibility-inlines-hidden -Wall -W -Wno-unused-parameter -Wwrite-strings -Wmissing-field-initializers -pedantic -Wno-long-long -Wcovered-switch-default -Wnon-virtual-dtor -std=c++11 -ffunction-sections -fdata-sections -g  -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS $(LLVM_VERSION)
+# kipfw, CXXFLAGS includes -g
+LINKTIME_FLAGS +=  -std=c++11 -Wno-zero-length-array
+LINKTIME_FLAGS += ${LLVM_CXXFLAGS} $(LLVM_VERSION) ${LLVM_LDFLAGS}
 $(MOD): $(IPFW_OBJS)
 	$(MSG) "   LD $@"
-	$(HIDE)${CCXX} $(LINKTIME_FLAGS) -o $@ -Wl,--export-dynamic $^ ${LLVM_LIBS}
+	$(HIDE)${CCXX} $(LINKTIME_FLAGS) -Wl,--export-dynamic $^ -o $@  ${LLVM_LIBS} ${LLVM_SYSLIBS}
 
+
+#Flags needed for jit.cc
+JIT_CFLAGS += $(INCDIRS) $(NETMAP_FLAGS)
+JIT_CFLAGS += -DINET -D_KERNEL -D_BSD_SOURCE -DKERNEL_SIDE -DUSERSPACE
+JIT_CFLAGS += -I ../extra/ -Wno-extern-c-compat -Wno-comment
+JIT_CFLAGS += ${LLVM_CXXFLAGS} $(LLVM_VERSION)
 jit.o: jit.cc ../rules.bc
 	$(MSG) "   CC $<"
-	$(HIDE)${CCXX} $(JIT_CFLAGS) -g -O0 -c -o ./jit.o ../sys/netpfil/ipfw/jit.cc
+	$(HIDE)${CCXX} $(JIT_CFLAGS) -O0 -c -o ./jit.o ../sys/netpfil/ipfw/jit.cc
 
 clean:
 	-rm -f *.o $(DN) $(MOD)
