@@ -2185,7 +2185,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 	if (chain->n_rules == 0)
 		return (NULL);
 
-	//test_compilation();
+	// test_compilation();
 
 	ipfwJIT compiler(chain->n_rules);
 
