@@ -2031,15 +2031,17 @@ class ipfwJIT {
 		// continue;
 	}
 
+	// TODO - We have to do this directly in LLVM, given that the control flow
+	// is modified.
 	void
 	emit_callreturn()
 	{
 		// rule_callreturn(ipfw_insn *cmd, struct mbuf *m, struct ip_fw *f, struct ip_fw_chain *chain, uint32_t tablearg, int pktlen, int *skip_or, int *cmdlen, int *f_pos, int *l)
-		Value *CmdL = Irb.CreateLoad(Cmd);
-		Value *TableargL = Irb.CreateLoad(Tablearg);
-		Value *PktlenL = Irb.CreateLoad(Pktlen);
-		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
-		Irb.CreateCall(RuleCallreturn, {CmdL, M, F, Chain, TableargL, PktlenL, SkipOr, CmdlenL, FPos, L});
+		// Value *CmdL = Irb.CreateLoad(Cmd);
+		// Value *TableargL = Irb.CreateLoad(Tablearg);
+		// Value *PktlenL = Irb.CreateLoad(Pktlen);
+		// Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		// Irb.CreateCall(RuleCallreturn, {CmdL, M, F, Chain, TableargL, PktlenL, SkipOr, CmdlenL, FPos, L});
 	}
 
 	void
