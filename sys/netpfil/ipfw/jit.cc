@@ -2172,6 +2172,7 @@ test_compilation()
 	compiler.end_rule();
 	printf("emit_end()\n");
 	compiler.emit_end();
+	compiler.compile();
 	err(1, "Compilation");
 }
 
