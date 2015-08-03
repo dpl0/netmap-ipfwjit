@@ -73,8 +73,8 @@ The commands to run (in separate windows) are:
 	ipfw/ipfw show  # or other
 
 Luigi reports that on his i7-3400 he got about 6.5 Mpps with a single rule, and
-about 2.2 Mpps when going through a dummynet pipe. This is for a single process
-handling the traffic.
+about 2.2 Mpps when going through a dummynet pipe using netmap-ipfw. This is
+for a single process handling the traffic.
 
 Unfortunately, this is not enough to test it properly, as we'll have to test
 different protocols besides IP, which is what ./tools/pkt-gen does. At some
