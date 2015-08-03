@@ -56,5 +56,9 @@
 			process of another working compiler (CompileTeaching/MysoreScript).
 			It works perfectly.
 
-
-2 BUG: Kernel panic when calling some LLVM functions. (See BUG 1)
+2 BUG: Kernel panic when filtering an unbounded quantity of packets.
+	TEST: Is there any hardcoded limit at the number of packets?
+		OBS:  500 packets - Kernel panic.
+			  625 packets - Kernel panic.
+			  750 packets - Kernel panic.
+			 1000 packets - Kernel panic.
