@@ -949,7 +949,7 @@ class ipfwJIT {
 	compile()
 	{
 		InitializeNativeTarget();
-		LLVMLinkInMCJIT();
+		LLVMLinkInJIT();
 
 		// Optimise
 		PassManagerBuilder PMBuilder;
@@ -971,7 +971,7 @@ class ipfwJIT {
 		std::string errstr;
 		EngineBuilder EB = EngineBuilder(std::move(mod));
 		ExecutionEngine *EE = EB.setEngineKind(EngineKind::JIT)
-			.setUseMCJIT(true)
+			//.setUseMCJIT(true)
 			.setOptLevel(CodeGenOpt::Level::Aggressive)
 			.setVerifyModules(true)
 			.setErrorStr(&errstr)
@@ -982,7 +982,7 @@ class ipfwJIT {
 			exit(1);
 		}
 
-		return (funcptr)EE->getFunctionAddress("ipfw_chk_jit");
+		return (funcptr)EE->getPointerToFunction(Func);
 	}
 
 	void
