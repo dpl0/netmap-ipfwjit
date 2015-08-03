@@ -53,20 +53,21 @@ connect a source and sink to the userspace firewall, as follows:
 	[pkt-gen]-->--[valeA:s]-->--[kipfw]-->--[valeA:r]-->--[pkt-gen]
 
 The commands to run (in separate windows) are:
-	# preliminarly, load the netmap module if needed
+
+	# preliminarly, load the netmap module if needed:
 	sudo kldload netmap.ko
 
 	# connect the firewall to two vale switches
-	./kipfw valeA:t valeA:r &
+	./kipfw valeA:f valeB:f &
 
 	# configure ipfw/dummynet
 	ipfw/ipfw show	# or other
 
-	# start the sink/receptor
-	pkt-gen -i valeA:r -f rx
+	# start the sink
+	pkt-gen -i valeB:d -f rx
 
 	# start an infinite source
-	pkt-gen -i valeA:t -f tx
+	pkt-gen -i valeA:s -f tx
 
 	# plain again with the firewall and enjoy
 	ipfw/ipfw show  # or other
