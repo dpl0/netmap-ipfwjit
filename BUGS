@@ -2,7 +2,7 @@
 # development process. It sort of follows the guideline of:
 # http://courses.cse.tamu.edu/cscd606fall13/walker/Papers/BugScientificMethod.pdf
 
-1 BUG: Firewall can't compile code.
+1 BUG: Firewall can't compile code. -- Working now.
 	Comments: We think this happens due to the change in the LLVM version we're
 	using now. During the last summer, I used devel/llvm-devel, and we're now
 	settling with LLVM 3.5, and I'll probably end up porting to the C API.
