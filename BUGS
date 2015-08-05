@@ -62,3 +62,33 @@
 			  625 packets - Kernel panic.
 			  750 packets - Kernel panic.
 			 1000 packets - Kernel panic.
+
+3 BUG: Not all of the types of the called functions inside the JIT are correct.
+	Comment: More than a bug this is a status report on the quality of the JIT.
+		Once all the rules are written correctly, this "BUG" will dissapear.
+	Rules:
+		emit_icmptype();
+		emit_ipopt();
+		emit_ipver();
+		emit_ipttl();
+		emit_ipprecedence();
+		emit_iptos();
+		emit_dscp();
+		emit_tcpdatalen();
+		emit_altq();
+		emit_log();
+		emit_prob();
+		emit_sockarg();
+		emit_keep_state();
+		emit_check_state();
+		emit_count();
+		emit_reject();
+		emit_forward_ip();
+		emit_ngtee();
+		emit_setfib();
+		emit_setdscp();
+		emit_reass();
+
+4 BUG: Compilation error when compiling code emitted by emit_jail().
+	Comment: There's something wrong going on with the BasicBlocks used by this
+		function. It's emission is correct, though.
