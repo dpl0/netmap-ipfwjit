@@ -985,6 +985,20 @@ class ipfwJIT {
 		return (funcptr)EE->getPointerToFunction(Func);
 	}
 
+	// Function used to help when checking the type of the function calls.
+	void dumpCall(Function *F, std::vector<Value*> args)
+	{
+		std::cout << std::endl;
+		F->getType()->dump();
+		std::cout << std::endl;
+		for (Value * v : args) {
+			v->dump();
+		}
+		std::cout << std::endl;
+		Irb.CreateCall(F, args);
+		return;
+	}
+
 	void
 	end_rule()
 	{
