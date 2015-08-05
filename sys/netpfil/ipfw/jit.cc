@@ -951,6 +951,10 @@ class ipfwJIT {
 		InitializeNativeTarget();
 		LLVMLinkInJIT();
 
+		// Dump it?
+		//mod->dump();
+		//Func->dump();
+
 		// Optimise
 		PassManagerBuilder PMBuilder;
 		PMBuilder.OptLevel = 3;
@@ -1513,7 +1517,8 @@ class ipfwJIT {
 		// rule_ip_dst_mask(int *match, int is_ipv4, ipfw_insn *cmd, int cmdlen, struct in_addr *dst_ip, struct in_addr *src_ip)
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
-		Irb.CreateCall(RuleIpDstMask, {Match, IsIpv4L, Cmd, CmdlenL, DstIp, SrcIp});
+		Value *CmdL    = Irb.CreateLoad(Cmd);
+		Irb.CreateCall(RuleIpDstMask, {Match, IsIpv4L, CmdL, CmdlenL, DstIp, SrcIp});
 	}
 
 	void
@@ -1541,7 +1546,7 @@ class ipfwJIT {
 		// rule_ip_src_set(int *match, int is_ipv4, ipfw_insn *cmd, struct ip_fw_args *args)
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleIpSrc, {Match, IsIpv4L, CmdL, Args});
+		Irb.CreateCall(RuleIpSrcSet, {Match, IsIpv4L, CmdL, Args});
 	}
 
 	void
@@ -1593,7 +1598,7 @@ class ipfwJIT {
 		Value *ProtoL = Irb.CreateLoad(Proto);
 		Value *UlpL = Irb.CreateLoad(Ulp);
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleIcmptype, {Match, OffsetL, ProtoL, UlpL, Cmd});
+		Irb.CreateCall(RuleIcmptype, {Match, OffsetL, ProtoL, UlpL, CmdL});
 	}
 
 	void
@@ -1616,7 +1621,8 @@ class ipfwJIT {
 		// rule_ipopt(int *match, int is_ipv4, struct ip *ip, ipfw_insn *cmd)
 		Value *CmdL = Irb.CreateLoad(Cmd);
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
-		Irb.CreateCall(RuleIpopt, {Match, IsIpv4, IpPtr, CmdL});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleIpopt, {Match, IsIpv4L, IpPtrL, CmdL});
 	}
 
 	void
@@ -1625,7 +1631,8 @@ class ipfwJIT {
 		// rule_ipver(int *match, int is_ipv4, ipfw_insn *cmd, struct ip *ip)
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleIpver, {Match, IsIpv4L, CmdL, IpPtr});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleIpver, {Match, IsIpv4L, CmdL, IpPtrL});
 	}
 
 	void
@@ -1636,7 +1643,8 @@ class ipfwJIT {
 		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
 		Value *IplenL = Irb.CreateLoad(Iplen);
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
-		Irb.CreateCall(RuleIpttl, {Match, IsIpv4L, CmdL, CmdlenL, IpPtr, IplenL});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleIpttl, {Match, IsIpv4L, CmdL, CmdlenL, IpPtrL, IplenL});
 	}
 
 	void
@@ -1645,7 +1653,8 @@ class ipfwJIT {
 		// rule_ipprecedence(int *match, int is_ipv4, ipfw_insn *cmd, struct ip *ip)
 		Value *CmdL = Irb.CreateLoad(Cmd);
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
-		Irb.CreateCall(RuleIpprecedence, {Match, IsIpv4L, CmdL, IpPtr});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleIpprecedence, {Match, IsIpv4L, CmdL, IpPtrL});
 	}
 
 	void
@@ -1654,7 +1663,8 @@ class ipfwJIT {
 		// rule_iptos(int *match, int is_ipv4, ipfw_insn *cmd, struct ip *ip)
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleIptos, {Match, IsIpv4L, CmdL, IpPtr});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleIptos, {Match, IsIpv4L, CmdL, IpPtrL});
 	}
 
 	void
@@ -1664,7 +1674,8 @@ class ipfwJIT {
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleDscp, {Match, IsIpv4L, IsIpv6L, CmdL, IpPtr});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleDscp, {Match, IsIpv4L, IsIpv6L, CmdL, IpPtrL});
 	}
 
 	void
@@ -1677,7 +1688,8 @@ class ipfwJIT {
 		Value *IplenL = Irb.CreateLoad(Iplen);
 		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleTcpdatalen, {Match, ProtoL, OffsetL, UlpL, IplenL, CmdlenL, CmdL, IpPtr});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleTcpdatalen, {Match, ProtoL, OffsetL, UlpL, IplenL, CmdlenL, CmdL, IpPtrL});
 	}
 
 	void
@@ -1747,7 +1759,8 @@ class ipfwJIT {
 	{
 		// rule_altq(int *match, ipfw_insn *cmd, struct mbuf *m, struct ip *ip)
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleAltq, {Match, CmdL, M, IpPtr});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleAltq, {Match, CmdL, M, IpPtrL});
 	}
 
 	void
@@ -1759,7 +1772,8 @@ class ipfwJIT {
 		Value *OffsetL = Irb.CreateLoad(Offset);
 		Value *TableargL = Irb.CreateLoad(Tablearg);
 		Value *Ip6fMfL = Irb.CreateLoad(Ip6fMf);
-		Irb.CreateCall(RuleLog, {Match, FL, HlenL, Args, M, Oif, OffsetL, Ip6fMfL, TableargL, IpPtr});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleLog, {Match, FL, HlenL, Args, M, Oif, OffsetL, Ip6fMfL, TableargL, IpPtrL});
 	}
 
 	void
@@ -1767,7 +1781,7 @@ class ipfwJIT {
 	{
 		// rule_prob(int *match, ipfw_insn *cmd)
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleProb, {Match, Cmd});
+		Irb.CreateCall(RuleProb, {Match, CmdL});
 	}
 
 	void
@@ -1906,8 +1920,7 @@ class ipfwJIT {
 		Value *ProtoL = Irb.CreateLoad(Proto);
 		Value *DstPortL = Irb.CreateLoad(DstPort);
 		Value *SrcPortL = Irb.CreateLoad(SrcPort);
-		Value *TableargL = Irb.CreateLoad(Tablearg);
-		Irb.CreateCall(RuleSockarg, {Match, IsIpv6L, ProtoL, DstIp, SrcIp, DstPortL, SrcPortL, Args, TableargL});
+		Irb.CreateCall(RuleSockarg, {Match, IsIpv6L, ProtoL, DstIp, SrcIp, DstPortL, SrcPortL, Args, Tablearg});
 	}
 
 	void
@@ -1967,19 +1980,22 @@ class ipfwJIT {
 	{
 		// rule_keep_state(int *match, struct ip_fw *f, ipfw_insn *cmd, struct ip_fw_args *args, uint32_t tablearg, int *retval, int *l, int *done)
 		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *FL = Irb.CreateLoad(F);
 		Value *TableargL = Irb.CreateLoad(Tablearg);
-		Irb.CreateCall(RuleKeepState, {Match, F, CmdL, Args, TableargL, Retval, L, Done});
+		Irb.CreateCall(RuleKeepState, {Match, FL, CmdL, Args, TableargL, Retval, L, Done});
 	}
 
 	void
 	emit_check_state()
 	{
 		// rule_check_state(int *match, int *dyn_dir, ipfw_dyn_rule *q, struct ip_fw_args *args, uint8_t proto, void *ulp, int pktlen, struct ip_fw *f, int *f_pos, struct ip_fw_chain *chain, ipfw_insn *cmd, int *cmdlen, int *l)
+		Value *QL = Irb.CreateLoad(Q);
+		Value *FL = Irb.CreateLoad(F);
 		Value *ProtoL = Irb.CreateLoad(Proto);
 		Value *UlpL = Irb.CreateLoad(Ulp);
 		Value *PktlenL = Irb.CreateLoad(Pktlen);
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleCheckState, {Match, DynDir, Q, Args, ProtoL, UlpL, PktlenL, F, FPos, Chain, CmdL, Cmdlen, L});
+		Irb.CreateCall(RuleCheckState, {Match, DynDir, QL, Args, ProtoL, UlpL, PktlenL, FL, FPos, Chain, CmdL, Cmdlen, L});
 	}
 
 	void
@@ -2014,7 +2030,8 @@ class ipfwJIT {
 	{
 		// rule_count(int *l, struct ip_fw *f, int pktlen)
 		Value *PktlenL = Irb.CreateLoad(Pktlen);
-		Irb.CreateCall(RuleTee, {L, F, PktlenL});
+		Value *FL = Irb.CreateLoad(F);
+		Irb.CreateCall(RuleCount, {L, FL, PktlenL});
 	}
 
 	// TODO - We have to do this directly in LLVM, given that the control flow
@@ -2066,9 +2083,11 @@ class ipfwJIT {
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *OffsetL = Irb.CreateLoad(Offset);
 		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *UlpL = Irb.CreateLoad(Ulp);
 		Value *CmdL = Irb.CreateLoad(Cmd);
 		Value *IplenL = Irb.CreateLoad(Iplen);
-		Irb.CreateCall(RuleReject, {HlenL, IsIpv4L, OffsetL, ProtoL, Ulp, M, DstIp, Args, CmdL, IplenL, IpPtr});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleReject, {HlenL, IsIpv4L, OffsetL, ProtoL, UlpL, M, DstIp, Args, CmdL, IplenL, IpPtrL});
 	}
 
 	void
@@ -2097,11 +2116,12 @@ class ipfwJIT {
 	emit_forward_ip()
 	{
 		// rule_forward_ip(struct ip_fw_args *args, ipfw_dyn_rule *q, struct ip_fw *f, int dyn_dir, ipfw_insn *cmd, uint32_t tablearg, int *retval, int *l, int *done)
+		Value *QL = Irb.CreateLoad(Q);
+		Value *FL = Irb.CreateLoad(F);
 		Value *DynDirL = Irb.CreateLoad(DynDir);
 		Value *CmdL = Irb.CreateLoad(Cmd);
 		Value *TableargL = Irb.CreateLoad(Tablearg);
-		Value *RetvalL = Irb.CreateLoad(Retval);
-		Irb.CreateCall(RuleForwardIp, {Args, Q, F, DynDirL, CmdL, TableargL, RetvalL, L, Done});
+		Irb.CreateCall(RuleForwardIp, {Args, QL, FL, DynDirL, CmdL, TableargL, Retval, L, Done});
 	}
 
 	void
@@ -2123,17 +2143,18 @@ class ipfwJIT {
 		Value *FPosL = Irb.CreateLoad(FPos);
 		Value *CmdL = Irb.CreateLoad(Cmd);
 		Value *TableargL = Irb.CreateLoad(Tablearg);
-		Irb.CreateCall(RuleNgtee, {Args, FPosL, Chain, FPosL, Chain, CmdL, TableargL, Retval, L, Done});
+		Irb.CreateCall(RuleNgtee, {Args, FPosL, Chain, CmdL, TableargL, Retval, L, Done});
 	}
 
 	void
 	emit_setfib()
 	{
 		// rule_setfib(struct ip_fw *f, int pktlen, uint32_t tablearg, ipfw_insn *cmd, struct mbuf *m, struct ip_fw_args *args, int *l)
+		Value *FL = Irb.CreateLoad(F);
 		Value *PktlenL = Irb.CreateLoad(Pktlen);
 		Value *TableargL = Irb.CreateLoad(Tablearg);
 		Value *CmdL = Irb.CreateLoad(Cmd);
-		Irb.CreateCall(RuleSetfib, {F, PktlenL, TableargL, CmdL, M, Args, L});
+		Irb.CreateCall(RuleSetfib, {FL, PktlenL, TableargL, CmdL, M, Args, L});
 	}
 
 	void
@@ -2141,11 +2162,13 @@ class ipfwJIT {
 	{
 		// rule_setdscp(ipfw_insn *cmd, struct ip *ip, int is_ipv4, int is_ipv6, uint32_t tablearg, struct ip_fw *f, int pktlen, int *l)
 		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
 		Value *TableargL = Irb.CreateLoad(Tablearg);
+		Value *FL = Irb.CreateLoad(F);
 		Value *PktlenL = Irb.CreateLoad(Pktlen);
-		Irb.CreateCall(RuleSetdscp, {CmdL, IpPtr, IsIpv4L, IsIpv6L, TableargL, F, PktlenL, L});
+		Irb.CreateCall(RuleSetdscp, {CmdL, IpPtrL, IsIpv4L, IsIpv6L, TableargL, FL, PktlenL, L});
 	}
 
 	void
@@ -2162,31 +2185,104 @@ class ipfwJIT {
 	emit_reass()
 	{
 		// rule_reass(struct ip_fw *f, int f_pos, struct ip_fw_chain *chain, int pktlen, struct ip *ip, struct ip_fw_args *args, struct mbuf *m, int *retval, int *done, int *l)
+		Value *FL = Irb.CreateLoad(F);
+		Value *FPosL = Irb.CreateLoad(FPos);
 		Value *PktlenL = Irb.CreateLoad(Pktlen);
-		Irb.CreateCall(RuleReass, {F, FPos, Chain, PktlenL, IpPtr, Args, M, Retval, Done, L});
+		Value *IpPtrL = Irb.CreateLoad(IpPtr);
+		Irb.CreateCall(RuleReass, {FL, FPosL, Chain, PktlenL, IpPtrL, Args, M, Retval, Done, L});
 	}
 };
 
 // Function to test compilation code.
 // Filtering code has to be tested by real usage.
+// Todo: We have to work on a system with variables like INET6 set.
 void
 test_compilation()
 {
-	printf("Creating object\n");
 	ipfwJIT compiler(1);
-	printf("emit_outer_for_prologue()\n");
 	compiler.emit_outer_for_prologue();
-	printf("emit_inner_for_prologue()\n");
 	compiler.emit_inner_for_prologue();
 	// Rule to test
 	printf("Testing rule compilation\n");
+	compiler.emit_nop();
+	compiler.emit_forward_mac();
+	compiler.emit_jail();
+	compiler.emit_recv();
+	compiler.emit_xmit();
+	compiler.emit_via();
+	compiler.emit_macaddr2();
+	compiler.emit_mac_type();
+	compiler.emit_frag();
+	compiler.emit_in();
+	compiler.emit_layer2();
+	compiler.emit_diverted();
 	compiler.emit_proto();
-	printf("emit_inner_for_epilogue()\n");
+	compiler.emit_ip_src();
+	// compiler.emit_ip_dst_lookup();
+	compiler.emit_ip_dst_mask();
+	compiler.emit_ip_src_me();
+	compiler.emit_ip6_src_me();
+	compiler.emit_ip_src_set();
+	compiler.emit_ip_dst();
+	compiler.emit_ip_dst_me();
+	compiler.emit_ip6_dst_me();
+	compiler.emit_ip_dstport();
+	compiler.emit_icmptype();
+	compiler.emit_icmp6type();
+	compiler.emit_ipopt();
+	compiler.emit_ipver();
+	compiler.emit_ipttl();
+	compiler.emit_ipprecedence();
+	compiler.emit_iptos();
+	compiler.emit_dscp();
+	compiler.emit_tcpdatalen();
+	compiler.emit_tcpflags();
+	// compiler.emit_tcpopts();
+	compiler.emit_tcpseq();
+	compiler.emit_tcpack();
+	compiler.emit_tcpwin();
+	compiler.emit_estab();
+	compiler.emit_altq();
+	compiler.emit_log();
+	compiler.emit_prob();
+	compiler.emit_verrevpath();
+	compiler.emit_versrcreach();
+	compiler.emit_antispoof();
+	compiler.emit_ipsec();
+	compiler.emit_ip6_src();
+	compiler.emit_ip6_dst();
+	compiler.emit_ip6_dst_mask();
+	compiler.emit_flow6id();
+	compiler.emit_ext_hdr();
+	compiler.emit_ip6();
+	compiler.emit_ip4();
+	compiler.emit_tag();
+	compiler.emit_fib();
+	compiler.emit_sockarg();
+	compiler.emit_tagged();
+	compiler.emit_keep_state();
+	compiler.emit_check_state();
+	compiler.emit_accept();
+	compiler.emit_queue();
+	compiler.emit_tee();
+	compiler.emit_count();
+	//// Functions that we shouldn't call yet.
+	//// compiler.emit_skipto();
+	//// compiler.emit_callreturn();
+	compiler.emit_reject();
+	compiler.emit_unreach6();
+	compiler.emit_deny();
+	compiler.emit_forward_ip();
+	compiler.emit_forward_ip6();
+	compiler.emit_ngtee();
+	compiler.emit_setfib();
+	compiler.emit_setdscp();
+	compiler.emit_nat();
+	compiler.emit_reass();
+	// Finish writing the code.
 	compiler.emit_inner_for_epilogue();
-	printf("emit_outer_for_epilogue()\n");
 	compiler.emit_outer_for_epilogue();
 	compiler.end_rule();
-	printf("emit_end()\n");
 	compiler.emit_end();
 	compiler.compile();
 	err(1, "Compilation");
@@ -2201,7 +2297,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 	if (chain->n_rules == 0)
 		return (NULL);
 
-	// test_compilation();
+	test_compilation();
 
 	ipfwJIT compiler(chain->n_rules);
 
