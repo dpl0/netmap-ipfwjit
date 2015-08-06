@@ -94,8 +94,8 @@ class ipfwJIT {
 	// Packet matching variables.
 	Value *MPtr;
 	Value *IpPtr;
-	Value *Ucred_cache;
-	Value *Ucred_lookup;
+	Value *UcredCache;
+	Value *UcredLookup;
 	Value *Oif;
 	Value *Hlen; //unsigned
 	Value *Offset; //unsigned
@@ -239,31 +239,31 @@ class ipfwJIT {
 
 	// Used structs.
 	StructType *IfnetTy;
-	StructType *In_addrTy;
+	StructType *InAddrTy;
 	StructType *IpTy;
-	StructType *Ip_fw_argsTy;
-	StructType *Ip_fw_chainTy;
-	StructType *Ip_fwTy;
-	StructType *Ipfw_insnTy;
+	StructType *IpFwArgsTy;
+	StructType *IpFwChainTy;
+	StructType *IpFwTy;
+	StructType *IpfwInsnTy;
 	StructType *IpfwInsnU16Ty;
 	StructType *IpfwInsnIpTy;
-	StructType *Ipfw_dyn_ruleTy;
-	StructType *Ipfw_insn_ifTy;
+	StructType *IpfwDynRuleTy;
+	StructType *IpfwInsnIfTy;
 	StructType *MbufTy;
 	StructType *UcredTy;
 
 	// Pointer to structs type.
 	PointerType *IfnetPtrTy;
-	PointerType *In_addrPtrTy;
+	PointerType *InAddrPtrTy;
 	PointerType *IpPtrTy;
-	PointerType *Ip_fw_argsPtrTy;
-	PointerType *Ip_fw_chainPtrTy;
-	PointerType *Ip_fwPtrTy;
-	PointerType *Ipfw_insnPtrTy;
+	PointerType *IpFwArgsPtrTy;
+	PointerType *IpFwChainPtrTy;
+	PointerType *IpFwPtrTy;
+	PointerType *IpfwInsnPtrTy;
 	PointerType *IpfwInsnU16PtrTy;
 	PointerType *IpfwInsnIpPtrTy;
-	PointerType *Ipfw_dyn_rulePtrTy;
-	PointerType *Ipfw_insn_ifPtrTy;
+	PointerType *IpfwDynRulePtrTy;
+	PointerType *IpfwInsnIfPtrTy;
 	PointerType *MbufPtrTy;
 	PointerType *UcredPtrTy;
 
@@ -325,23 +325,23 @@ class ipfwJIT {
 		IfnetTy = mod->getTypeByName("struct.ifnet");
 		if (IfnetTy == NULL)
 			err(1, "bitcode fault: struct.ifnet");
-		In_addrTy = mod->getTypeByName("struct.in_addr");
-		if (In_addrTy == NULL)
+		InAddrTy = mod->getTypeByName("struct.in_addr");
+		if (InAddrTy == NULL)
 			err(1, "bitcode fault: struct.in_addr");
 		IpTy = mod->getTypeByName("struct.ip");
 		if (IpTy == NULL)
 			err(1, "bitcode fault: struct.ip");
-		Ip_fw_argsTy = mod->getTypeByName("struct.ip_fw_args");
-		if (Ip_fw_argsTy == NULL)
+		IpFwArgsTy = mod->getTypeByName("struct.ip_fw_args");
+		if (IpFwArgsTy == NULL)
 			err(1, "bitcode fault: struct.ip_fw_args");
-		Ip_fw_chainTy = mod->getTypeByName("struct.ip_fw_chain");
-		if (Ip_fw_chainTy == NULL)
+		IpFwChainTy = mod->getTypeByName("struct.ip_fw_chain");
+		if (IpFwChainTy == NULL)
 			err(1, "bitcode fault: struct.ip_fw_chain");
-		Ip_fwTy = mod->getTypeByName("struct.ip_fw");
-		if (Ip_fwTy == NULL)
+		IpFwTy = mod->getTypeByName("struct.ip_fw");
+		if (IpFwTy == NULL)
 			err(1, "bitcode fault: struct.ip_fw");
-		Ipfw_insnTy = mod->getTypeByName("struct._ipfw_insn");
-		if (Ipfw_insnTy == NULL)
+		IpfwInsnTy = mod->getTypeByName("struct._ipfw_insn");
+		if (IpfwInsnTy == NULL)
 			err(1, "bitcode fault: struct._ipfw_insn");
 		IpfwInsnU16Ty = mod->getTypeByName("struct._ipfw_insn_u16");
 		if (IpfwInsnU16Ty == NULL)
@@ -349,26 +349,26 @@ class ipfwJIT {
 		IpfwInsnIpTy = mod->getTypeByName("struct._ipfw_insn_ip");
 		if (IpfwInsnIpTy == NULL)
 			err(1, "bitcode fault: struct._ipfw_insn_ip");
-		Ipfw_insn_ifTy = mod->getTypeByName("struct._ipfw_insn_if");
-		if (Ipfw_insn_ifTy == NULL)
+		IpfwInsnIfTy = mod->getTypeByName("struct._ipfw_insn_if");
+		if (IpfwInsnIfTy == NULL)
 			err(1, "bitcode fault: struct._ipfw_insn_if");
-		Ipfw_dyn_ruleTy = mod->getTypeByName("struct._ipfw_dyn_rule");
-		if (Ipfw_dyn_ruleTy == NULL)
+		IpfwDynRuleTy = mod->getTypeByName("struct._ipfw_dyn_rule");
+		if (IpfwDynRuleTy == NULL)
 			err(1, "bitcode fault: struct._ipfw_dyn_rule");
 
 		// Create Pointer to StructType types.
 		MbufPtrTy = PointerType::getUnqual(MbufTy);
 		IfnetPtrTy = PointerType::getUnqual(IfnetTy);
-		In_addrPtrTy = PointerType::getUnqual(In_addrTy);
+		InAddrPtrTy = PointerType::getUnqual(InAddrTy);
 		IpPtrTy = PointerType::getUnqual(IpTy);
-		Ip_fw_argsPtrTy = PointerType::getUnqual(Ip_fw_argsTy);
-		Ip_fw_chainPtrTy = PointerType::getUnqual(Ip_fw_chainTy);
-		Ip_fwPtrTy = PointerType::getUnqual(Ip_fwTy);
-		Ipfw_insnPtrTy = PointerType::getUnqual(Ipfw_insnTy);
+		IpFwArgsPtrTy = PointerType::getUnqual(IpFwArgsTy);
+		IpFwChainPtrTy = PointerType::getUnqual(IpFwChainTy);
+		IpFwPtrTy = PointerType::getUnqual(IpFwTy);
+		IpfwInsnPtrTy = PointerType::getUnqual(IpfwInsnTy);
 		IpfwInsnU16PtrTy = PointerType::getUnqual(IpfwInsnU16Ty);
 		IpfwInsnIpPtrTy = PointerType::getUnqual(IpfwInsnIpTy);
-		Ipfw_insn_ifPtrTy = PointerType::getUnqual(Ipfw_insn_ifTy);
-		Ipfw_dyn_rulePtrTy = PointerType::getUnqual(Ipfw_dyn_ruleTy);
+		IpfwInsnIfPtrTy = PointerType::getUnqual(IpfwInsnIfTy);
+		IpfwDynRulePtrTy = PointerType::getUnqual(IpfwDynRuleTy);
 
 		// Get Function defs from bitcode.
 		// All of them are auxiliary functions.
@@ -715,8 +715,8 @@ class ipfwJIT {
 		Value *M_casted = Irb.CreateBitCast(M_data, IpPtrTy);
 		Irb.CreateStore(M_casted, IpPtr);
 
-		Ucred_lookup = Irb.CreateAlloca(Int32Ty, nullptr, "ucred_lookup");
-		Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Ucred_lookup);
+		UcredLookup = Irb.CreateAlloca(Int32Ty, nullptr, "ucred_lookup");
+		Irb.CreateStore(ConstantInt::get(Int32Ty, 0), UcredLookup);
 
 		Oif = Irb.CreateAlloca(IfnetTy, nullptr, "oif"); // Init: args->oif
 		Irb.CreateLoad(Irb.CreateStructGEP(Args, 1), Oif);
@@ -744,11 +744,11 @@ class ipfwJIT {
 		Irb.CreateStore(ConstantInt::get(Int16Ty, 0), DstPort);
 
 		//src_ip.s_addr = 0;
-		SrcIp = Irb.CreateAlloca(In_addrTy, nullptr, "src_ip");
+		SrcIp = Irb.CreateAlloca(InAddrTy, nullptr, "src_ip");
 		Value *Src_s_addr = Irb.CreateStructGEP(SrcIp, 0);
 		Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Src_s_addr);
 		//dst_ip.s_addr = 0;
-		DstIp = Irb.CreateAlloca(In_addrTy, nullptr, "dst_ip");
+		DstIp = Irb.CreateAlloca(InAddrTy, nullptr, "dst_ip");
 		Value *Dst_s_addr = Irb.CreateStructGEP(DstIp, 0);
 		Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Dst_s_addr);
 
@@ -771,8 +771,8 @@ class ipfwJIT {
 		DynDir = Irb.CreateAlloca(Int32Ty, nullptr, "dyn_dir");
 		Irb.CreateStore(ConstantInt::get(Int32Ty, MATCH_UNKNOWN), DynDir);
 
-		Q = Irb.CreateAlloca(Ipfw_dyn_rulePtrTy, nullptr, "q");
-		Irb.CreateStore(ConstantPointerNull::get(Ipfw_dyn_rulePtrTy), Q);
+		Q = Irb.CreateAlloca(IpfwDynRulePtrTy, nullptr, "q");
+		Irb.CreateStore(ConstantPointerNull::get(IpfwDynRulePtrTy), Q);
 
 		// There are no (void *), we use i8*
 		Ulp = Irb.CreateAlloca(Int8PtrTy, nullptr, "ulp");
@@ -1032,13 +1032,13 @@ class ipfwJIT {
 		// ipfw_insn *cmd;
 		// uInt32_t tablearg = 0;
 		// int l, cmdlen, skip_or; /* skip rest of OR block */
-		Cmd = Irb.CreateAlloca(Ipfw_insnPtrTy, nullptr, "cmd");
+		Cmd = Irb.CreateAlloca(IpfwInsnPtrTy, nullptr, "cmd");
 		Tablearg = Irb.CreateAlloca(Int32Ty, nullptr, "tablearg");
 		L = Irb.CreateAlloca(Int32Ty, nullptr, "l");
 		Cmdlen = Irb.CreateAlloca(Int32Ty, nullptr, "cmdlen");
 		SkipOr = Irb.CreateAlloca(Int32Ty, nullptr, "skipor");
 		// struct ip_fw *f;
-		F = Irb.CreateAlloca(Ip_fwPtrTy, nullptr, "f");
+		F = Irb.CreateAlloca(IpFwPtrTy, nullptr, "f");
 
 		// uInt32_t tablearg = 0;
 		Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Tablearg);
@@ -1104,7 +1104,7 @@ class ipfwJIT {
 
 		// cmd = f->cmd;
 		Value *FCmd = Irb.CreateStructGEP(FL, 11);
-		Value *Addr = Irb.CreateBitCast(FCmd, Ipfw_insnPtrTy);
+		Value *Addr = Irb.CreateBitCast(FCmd, IpfwInsnPtrTy);
 		Irb.CreateStore(Addr, Cmd);
 
 		// int match;
@@ -1289,7 +1289,7 @@ class ipfwJIT {
 
 		Irb.SetInsertPoint(Jt);
 		// struct ip_fw *rule = chain->map[f_pos];
-		Rule = Irb.CreateAlloca(Ip_fwPtrTy, nullptr, "rule");
+		Rule = Irb.CreateAlloca(IpFwPtrTy, nullptr, "rule");
 		Value *FPosL = Irb.CreateLoad(FPos);
 		Value *ExtFPos = Irb.CreateSExt(FPosL, Int64Ty);
 		Value *Map = Irb.CreateStructGEP(Chain, 5);
