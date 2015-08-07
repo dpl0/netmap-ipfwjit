@@ -1510,10 +1510,16 @@ class ipfwJIT {
 		// struct ip *ip, struct in_addr *dst_ip, struct in_addr *src_ip,
 		// uint16_t dst_port, uint16_t src_port, u_short offset, uint8_t proto,
 		// int ucred_lookup, void *ucred_cache, struct ip_fw_chain *chain)
-		//
-		// Irb.CreateCall(RuleIpDstLookup, {Match, CmdL, CmdlenL, Args, Tablearg,
-		// 			   IsIpv4L, IsIpv6L, IpL, DstIp, SrcIp, DstPort, SrcPort,
-		// 			   OffsetL, ProtoL, UcredLookup, UcredCache, Chain});
+		Value *CmdL    = Irb.CreateLoad(Cmd);
+		Value *CmdlenL = Irb.CreateLoad(Cmdlen);
+		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
+		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
+		Value *IpL     = Irb.CreateLoad(IpPtr);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *ProtoL  = Irb.CreateLoad(Proto);
+		dumpCall(RuleIpDstLookup, {Match, CmdL, CmdlenL, Args, Tablearg,
+				IsIpv4L, IsIpv6L, IpL, DstIp, SrcIp, DstPort, SrcPort,
+				OffsetL, ProtoL, UcredLookup, UcredCache, Chain});
 	}
 
 	void
@@ -2242,7 +2248,7 @@ test_compilation()
 	compiler.emit_diverted();
 	compiler.emit_proto();
 	compiler.emit_ip_src();
-	// compiler.emit_ip_dst_lookup();
+	compiler.emit_ip_dst_lookup();
 	compiler.emit_ip_dst_mask();
 	compiler.emit_ip_src_me();
 	compiler.emit_ip6_src_me();
