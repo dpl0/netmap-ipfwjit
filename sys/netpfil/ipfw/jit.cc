@@ -1711,8 +1711,27 @@ class ipfwJIT {
 	void
 	emit_tcpopts()
 	{
-		// if (rule_tcpopts(int *match, u_int hlen, void *ulp, uint8_t proto, u_short offset, ipfw_insn *cmd, struct mbuf *m, struct ip_fw_args *args))
+		// if (rule_tcpopts(int *match, u_int hlen, void *ulp, uint8_t proto,
+		//		u_short offset, ipfw_insn *cmd, struct mbuf *m, struct ip_fw_args
+		//		*args))
 		// 	goto pullup_failed;
+		BasicBlock *Cont = BasicBlock::Create(Con, "cont_past_tcpopts", Func);
+
+		// Create call.
+		Value *HlenL = Irb.CreateLoad(Hlen);
+		Value *UlpL = Irb.CreateLoad(Ulp);
+		Value *ProtoL = Irb.CreateLoad(Proto);
+		Value *OffsetL = Irb.CreateLoad(Offset);
+		Value *CmdL = Irb.CreateLoad(Cmd);
+		Value *Ret = Irb.CreateCall(RuleTcpopts, {Match, HlenL, UlpL, ProtoL,
+				OffsetL, CmdL, M, Args});
+		
+		// Compare call result with zero.
+		Value *Comp = Irb.CreateICmpEQ(Ret, ConstantInt::get(Int32Ty, 0));
+		
+		// If it's different from zero, jump to pullup_failed.
+		Irb.CreateCondBr(Comp, PullupFailed, Cont);
+		Irb.SetInsertPoint(Cont);
 	}
 
 	void
@@ -2242,7 +2261,7 @@ test_compilation()
 	compiler.emit_dscp();
 	compiler.emit_tcpdatalen();
 	compiler.emit_tcpflags();
-	// compiler.emit_tcpopts();
+	compiler.emit_tcpopts();
 	compiler.emit_tcpseq();
 	compiler.emit_tcpack();
 	compiler.emit_tcpwin();
