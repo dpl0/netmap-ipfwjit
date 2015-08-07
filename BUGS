@@ -64,11 +64,9 @@
 			 1000 packets - Kernel panic.
 
 3 BUG: Code emission didn't work properly for some functions. -- Solved.
-4 BUG: Code emission for some rules isn't yet completed.
-	- emit_tcpopts() -- Completed.
-	- emit_ip_dst_lookup().
+4 BUG: Code emission for some rules isn't yet completed. -- Solved.
 
-4 BUG: Compilation error when compiling code emitted by emit_jail(). -- Solved.
+5 BUG: Compilation error when compiling code emitted by emit_jail(). -- Solved.
 	Comment: There's something wrong going on with the BasicBlocks used by this
 		function. It's emission is correct, though.
 	Solved by instead creating two branchs, OR'ed the result of two comparisons.
