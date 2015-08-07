@@ -951,9 +951,7 @@ class ipfwJIT {
 		InitializeNativeTarget();
 		LLVMLinkInJIT();
 
-		// Dump it?
-		//mod->dump();
-		//Func->dump();
+		Func->dump();
 
 		// Optimise
 		PassManagerBuilder PMBuilder;
@@ -1361,15 +1359,17 @@ class ipfwJIT {
 		Irb.CreateCall(RuleForwardMac, {OpcodeL32});
 	}
 
+	// XXX This will be changed when working for the base-ipfw.
 	void
 	emit_jail()
 	{
 		// rule_jail(&match, offset, proto, cmd, args, ucred_lookup, ucred_cache);
 		// We wrote our own version because we don't have ucred_lookup.
+		BasicBlock *EmitJail = BasicBlock::Create(Con, "emit_jail", Func);
 		BasicBlock *OffsetNZ = BasicBlock::Create(Con, "R_offsetnotzero", Func);
 		BasicBlock *OffsetZE = BasicBlock::Create(Con, "R_offsetiszero", Func);
 		BasicBlock *TCPorUDP = BasicBlock::Create(Con, "R_setmatchzero", Func);
-		BasicBlock *Continue = BasicBlock::Create(Con, "R_Continue", Func);
+		BasicBlock *Continue = BasicBlock::Create(Con, "Continue", Func);
 		Value *Comp;
 
 		// if (offset != 0)
@@ -1377,6 +1377,11 @@ class ipfwJIT {
 		// if (proto == IPPROTO_TCP ||
 		// 	proto == IPPROTO_UDP)
 		//		*match = 0;
+		//	This is just what netmap-ipfw does (sets *match to 0 if USERSPACE).
+
+		// Create a basic block for this.
+		Irb.CreateBr(EmitJail);
+		Irb.SetInsertPoint(EmitJail);
 
 		// if (offset != 0)
 		//		break;
@@ -1395,8 +1400,8 @@ class ipfwJIT {
 		Value *ProtoL = Irb.CreateLoad(Proto);
 		Comp = Irb.CreateICmpEQ(OffsetL, ConstantInt::get(OffsetL->getType(), IPPROTO_TCP));
 		Value *Comp2 = Irb.CreateICmpEQ(OffsetL, ConstantInt::get(OffsetL->getType(), IPPROTO_UDP));
-		Irb.CreateCondBr(Comp, TCPorUDP, Continue);
-		Irb.CreateCondBr(Comp2, TCPorUDP, Continue);
+		Value *CompOr = Irb.CreateOr(Comp, Comp2);
+		Irb.CreateCondBr(CompOr, TCPorUDP, Continue);
 
 		Irb.SetInsertPoint(TCPorUDP);
 		Irb.CreateStore(ConstantInt::get(Int32Ty, 0), Match);
