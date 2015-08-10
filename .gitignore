@@ -4,7 +4,11 @@ GTAGS
 cscope*
 *.o
 *.swp
+*.core
+*.py
+*.pyc
 .*.vim
+*.vim
 llvm
 objs
 ipfw/ipfw
