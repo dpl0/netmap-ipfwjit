@@ -95,6 +95,7 @@ class ipfwJIT {
 	Value *MPtr;
 	Value *IpPtr;
 	Value *UcredCache;
+	Value *UcredCachePtr;
 	Value *UcredLookup;
 	Value *Oif;
 	Value *Hlen; //unsigned
@@ -356,6 +357,16 @@ class ipfwJIT {
 		if (IpfwDynRuleTy == NULL)
 			err(1, "bitcode fault: struct._ipfw_dyn_rule");
 
+#ifdef __FreeBSD__
+			char *structCredName = "struct.bsd_ucred";
+#else
+			char *structCredName = "struct.ucred";
+#endif /* __FreeBSD__ */
+		UcredTy = mod->getTypeByName(structCredName);
+		if (UcredTy == NULL)
+			err(1, "bitcode fault: %s", structCredName);
+
+
 		// Create Pointer to StructType types.
 		MbufPtrTy = PointerType::getUnqual(MbufTy);
 		IfnetPtrTy = PointerType::getUnqual(IfnetTy);
@@ -369,6 +380,7 @@ class ipfwJIT {
 		IpfwInsnIpPtrTy = PointerType::getUnqual(IpfwInsnIpTy);
 		IpfwInsnIfPtrTy = PointerType::getUnqual(IpfwInsnIfTy);
 		IpfwDynRulePtrTy = PointerType::getUnqual(IpfwDynRuleTy);
+		UcredPtrTy = PointerType::getUnqual(UcredTy);
 
 		// Get Function defs from bitcode.
 		// All of them are auxiliary functions.
@@ -709,11 +721,36 @@ class ipfwJIT {
 		Irb.CreateStore(Irb.CreateLoad(Irb.CreateStructGEP(Args, 0)), MPtr);
 		M = Irb.CreateLoad(MPtr);
 
+		// struct ip *ip = mtod(m, struct ip *);
 		// ip = (struct ip *)((m)->m_data) (idx: 2)
 		IpPtr = Irb.CreateAlloca(IpPtrTy, nullptr, "ip");
 		Value *M_data = Irb.CreateStructGEP(M, 2);
 		Value *M_casted = Irb.CreateBitCast(M_data, IpPtrTy);
 		Irb.CreateStore(M_casted, IpPtr);
+
+		// #ifndef __FreeBSD__
+		//	 struct bsd_ucred ucred_cache;
+		// #else
+		//	struct ucred *ucred_cache = NULL;
+		//#endif
+		//
+		//struct bsd_ucred {
+		//	uid_t		uid;
+		//	gid_t		gid;
+		//	uint32_t	xid;
+		//	uint32_t	nid;
+		//};
+		// XXX - Taking this out when porting to base-ipfw.
+#ifdef __FreeBSD__
+		UcredCache = Irb.CreateAlloca(UcredTy, nullptr, "ucred_cache");
+		UcredCachePtr = Irb.CreateStructGEP(UcredCache, 0, "ucred_cache_ptr");
+#else
+		UcredCache = Irb.CreateAlloca(UcredPtrTy, nullptr, "ucred_cache");
+		Irb.CreateStore(ConstantPointerNull::get(UcredPtrTy), 0);
+		UcredCachePtr = UCredCache;
+#endif
+		// Get a (void*).
+		UcredCachePtr = Irb.CreateBitCast(this->UcredCachePtr, Int8PtrTy);
 
 		UcredLookup = Irb.CreateAlloca(Int32Ty, nullptr, "ucred_lookup");
 		Irb.CreateStore(ConstantInt::get(Int32Ty, 0), UcredLookup);
@@ -1504,7 +1541,6 @@ class ipfwJIT {
 	void
 	emit_ip_dst_lookup()
 	{
-		// XXX TODO: Recover the Values for Ucred*.
 		// rule_ip_dst_lookup(int *match, ipfw_insn *cmd, int cmdlen, struct
 		// ip_fw_args *args, uint32_t *tablearg, int is_ipv4, int is_ipv6,
 		// struct ip *ip, struct in_addr *dst_ip, struct in_addr *src_ip,
@@ -1515,11 +1551,15 @@ class ipfwJIT {
 		Value *IsIpv4L = Irb.CreateLoad(IsIpv4);
 		Value *IsIpv6L = Irb.CreateLoad(IsIpv6);
 		Value *IpL     = Irb.CreateLoad(IpPtr);
+		Value *DstPortL = Irb.CreateLoad(DstPort);
+		Value *SrcPortL = Irb.CreateLoad(SrcPort);
 		Value *OffsetL = Irb.CreateLoad(Offset);
 		Value *ProtoL  = Irb.CreateLoad(Proto);
-		dumpCall(RuleIpDstLookup, {Match, CmdL, CmdlenL, Args, Tablearg,
-				IsIpv4L, IsIpv6L, IpL, DstIp, SrcIp, DstPort, SrcPort,
-				OffsetL, ProtoL, UcredLookup, UcredCache, Chain});
+		Value *UcredLookupL = Irb.CreateLoad(UcredLookup);
+		
+		Irb.CreateCall(RuleIpDstLookup, {Match, CmdL, CmdlenL, Args, Tablearg,
+				IsIpv4L, IsIpv6L, IpL, DstIp, SrcIp, DstPortL, SrcPortL,
+				OffsetL, ProtoL, UcredLookupL, UcredCachePtr, Chain});
 	}
 
 	void

@@ -53,6 +53,12 @@ int tags_minlen = 64;
 int tags_freelist_count = 0;
 static int tags_freelist_max = 0;
 struct mbuf *mbuf_freelist;
+#ifdef __FreeBSD__
+       struct bsd_ucred ucred_cache;
+#else
+       struct ucred ucred_cache;
+#endif
+
 
 void
 m_freem(struct mbuf *m)
