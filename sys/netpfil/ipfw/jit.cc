@@ -2398,7 +2398,6 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 				compiler.emit_nop();
 				break;
 
-			// XXX Not implemented in netmap-ipfw
 			case O_FORWARD_MAC:
 				compiler.emit_forward_mac();
 				break;
