@@ -1025,7 +1025,7 @@ class ipfwJIT {
 	}
 
 	// Function used to help when checking the type of the function calls.
-	void dumpCall(Function *F, std::vector<Value*> args)
+	Value *dumpCall(Function *F, std::vector<Value*> args)
 	{
 		std::cout << std::endl;
 		F->getType()->dump();
@@ -1034,8 +1034,8 @@ class ipfwJIT {
 			v->dump();
 		}
 		std::cout << std::endl;
-		Irb.CreateCall(F, args);
-		return;
+		Value *Ret = Irb.CreateCall(F, args);
+		return Ret;
 	}
 
 	void
