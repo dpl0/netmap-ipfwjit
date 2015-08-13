@@ -958,8 +958,8 @@ class ipfwJIT {
 		Func->setLinkage(GlobalValue::ExternalLinkage);
 
 		// Create static BasicBlocks.
-		// The entry basic block contains all the initialization 
-		// and allocation of resources, and a basic check done 
+		// The entry basic block contains all the initialization
+		// and allocation of resources, and a basic check done
 		// before start emmiting the rules code.
 		Entry = BasicBlock::Create(Con, "Entry", Func);
 		End = BasicBlock::Create(Con, "End", Func);
