@@ -50,6 +50,38 @@ using namespace llvm;
 // 	Irb.CreateCall(PrintfFunc, StrFirstElement);
 // }
 
+
+// Helper function to enable cached rule lookups using
+// x_next and next_rule fields in ipfw rule. Copied to avoid problems.
+static int
+jump_fast(struct ip_fw_chain *chain, struct ip_fw *f, int num,
+    int tablearg, int jump_backwards)
+{
+	int f_pos;
+
+	/* If possible use cached f_pos (in f->next_rule),
+	 * whose version is written in f->next_rule
+	 * (horrible hacks to avoid changing the ABI).
+	 */
+	if (num != IP_FW_TABLEARG && (uintptr_t)f->x_next == chain->id)
+		f_pos = (uintptr_t)f->next_rule;
+	else {
+		int i = IP_FW_ARG_TABLEARG(num);
+		/* make sure we do not jump backward */
+		if (jump_backwards == 0 && i <= f->rulenum)
+			i = f->rulenum + 1;
+		f_pos = ipfw_find_rule(chain, i, 0);
+		/* update the cache */
+		if (num != IP_FW_TABLEARG) {
+			f->next_rule = (struct ip_fw *)(uintptr_t)f_pos;
+			f->x_next = (struct ip_fw *)(uintptr_t)chain->id;
+		}
+	}
+
+	return (f_pos);
+}
+
+
 class ipfwJIT {
 	Module *mod;
 	Function *Func;
@@ -147,6 +179,8 @@ class ipfwJIT {
 	// External functions
 	Function *PrintfFunc;
 	Function *IpfwFindRule;
+	// Functions used by the compiler to avoid complex code emission.
+	Function *SkipRules;
 
 	// Rules
 	Function *RuleNop;
@@ -433,9 +467,6 @@ class ipfwJIT {
 		SetMatch = mod->getFunction("set_match");
 		if (SetMatch == NULL)
 			err(1, "bitcode fault: set_match");
-		JumpFast = mod->getFunction("jump_fast");
-		if (JumpFast == NULL)
-			err(1, "bitcode fault: jump_fast");
 
 		// Functions declared at bitcode.
 		PrintfFunc = mod->getFunction("printf");
@@ -444,6 +475,9 @@ class ipfwJIT {
 		IpfwFindRule = mod->getFunction("ipfw_find_rule");
 		if (IpfwFindRule == NULL)
 			err(1, "bitcode fault: ipfw_find_rule");
+		SkipRules = mod->getFunction("skip_rules");
+		if (SkipRules == NULL)
+			err(1, "bitcode fault: skip_rules");
 
 		// Load the rules
 		RuleNop = mod->getFunction("rule_nop");
@@ -2107,29 +2141,43 @@ class ipfwJIT {
 	// TODO - We have to do this directly in LLVM, given that the control flow
 	// is modified.
 	void
-	emit_skipto()
+	emit_skipto(struct ip_fw_chain *chain, ipfw_insn *cmd, struct ip_fw *f, uint32_t tablearg)
 	{
+		// - Increase counters.
+		// - Get new f_pos in compiler, not compiled code.
+		// - Set loop control variables for rule at f_pos.
+		// - Create Br to rules[f_pos].
+		
+		// - Increase counters.
 		// IPFW_INC_RULE_COUNTER(f, pktlen);
-		// f_pos = jump_fast(chain, f, cmd->arg1, tablearg, 0);
-		// /*
-		//  * Skip disabled rules, and re-enter
-		//  * the inner loop with the correct
-		//  * f_pos, f, l and cmd.
-		//  * Also clear cmdlen and skip_or
-		//  */
-		// for (; f_pos < chain->n_rules - 1 &&
-		//	   (V_set_disable &
-		//	    (1 << chain->map[f_pos]->set));
-		//	   f_pos++)
-		// ;
-		// /* Re-enter the inner loop at the skipto rule. */
-		// f = chain->map[f_pos];
-		// l = f->cmd_len;
-		// cmd = f->cmd;
-		// match = 1;
-		// cmdlen = 0;
-		// skip_or = 0;
-		// continue;
+		// (f)->pcnt++; (idx: 8)
+		Value *FL = Irb.CreateLoad(F, "loaded.f");
+		Value *Pcnt = Irb.CreateStructGEP(FL, 8, "pcnt");
+		Value *PcntL = Irb.CreateLoad(Pcnt);
+		Value *AddOp = Irb.CreateAdd(PcntL, ConstantInt::get(PcntL->getType(), 1));
+		Irb.CreateStore(AddOp, Pcnt);
+		// (f)->bcnt += pktlen; (idx: 9)
+		Value *Bcnt = Irb.CreateStructGEP(FL, 9, "bcnt");
+		Value *BcntL = Irb.CreateLoad(Bcnt);
+		Value *PktlenL = Irb.CreateLoad(Pktlen);
+		Value *PktlenL64 = Irb.CreateZExt(PktlenL, Int64Ty);
+		AddOp = Irb.CreateAdd(BcntL, PktlenL64);
+		Irb.CreateStore(AddOp, Bcnt);
+		// (f)->timestamp = time_uptime; (idx: 10)
+		Value *TimeUptime = mod->getGlobalVariable("time_uptime");
+		Value *TimeUptimeL = Irb.CreateLoad(TimeUptime);
+		Value *TimeUptimeL32 = Irb.CreateTrunc(TimeUptimeL, Int32Ty);
+		Value *Timestamp = Irb.CreateStructGEP(FL, 10, "bcnt");
+		Irb.CreateStore(TimeUptimeL32, Timestamp);
+		
+		// - Get new f_pos to create a Br to that BasicBlock in rules.
+		int NewFPos = jump_fast(chain, f, cmd->arg1, tablearg, 0);
+		
+		// - Set loop control variables for rule at f_pos.
+		Irb.CreateCall(SkipRules, {Chain, F, Cmd, FPos, L, Cmdlen, SkipOr});
+		
+		// Br to rule.
+		Irb.CreateCall(rules[NewFPos]);
 	}
 
 	// TODO - We have to do this directly in LLVM, given that the control flow
@@ -2336,9 +2384,10 @@ test_compilation()
 	compiler.emit_queue();
 	compiler.emit_tee();
 	compiler.emit_count();
-	//// Functions that we shouldn't call yet.
-	//// compiler.emit_skipto();
-	//// compiler.emit_callreturn();
+	// We can't test this here, we have no context variables.
+	// We need to test this in a real environment.
+	// compiler.emit_skipto();
+	// compiler.emit_callreturn();
 	compiler.emit_reject();
 	compiler.emit_unreach6();
 	compiler.emit_deny();
@@ -2363,6 +2412,8 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 {
 	int res;
 	int f_pos = 0;
+	// XXX When porting to base, we need to use correctly tablearg.
+	uint32_t tablearg = 0;
 
 	if (chain->n_rules == 0)
 		return (NULL);
@@ -2707,7 +2758,7 @@ compile_code(struct ip_fw_args *args, struct ip_fw_chain *chain)
 				break;
 
 			case O_SKIPTO:
-				compiler.emit_skipto();
+				compiler.emit_skipto(chain, cmd, f, tablearg);
 			    continue;
 			    break;	/* NOTREACHED */
 

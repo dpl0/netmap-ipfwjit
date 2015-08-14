@@ -156,3 +156,26 @@ voidfunction()
 	send_reject(args, tablearg , n, &ipstruct);
 }
 
+// Function used at the end of skipto and call/return emission.
+// By calling the inlined function we just perform these actions.
+static IPFW_RULES_INLINE void
+skip_rules(struct ip_fw_chain *chain, struct ip_fw *f, ipfw_insn *cmd, int
+		*f_pos, int *l, int *cmdlen, int *skip_or) {
+	/*
+	 * Skip disabled rules, and re-enter
+	 * the inner loop with the correct
+	 * f_pos, f, l and cmd.
+	 * Also clear cmdlen and skip_or
+	 */
+	for (; (*f_pos) < chain->n_rules - 1 &&
+	    (V_set_disable &
+	    (1 << chain->map[(*f_pos)]->set)); (*f_pos)++)
+		;
+	/* Re-enter the inner loop at the dest rule. */
+	f = chain->map[(*f_pos)];
+	*l = f->cmd_len;
+	cmd = f->cmd;
+	*cmdlen = 0;
+	*skip_or = 0;
+}
+

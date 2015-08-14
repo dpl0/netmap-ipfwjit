@@ -65,6 +65,7 @@
 
 3 BUG: Code emission didn't work properly for some functions. -- Solved.
 4 BUG: Code emission for some rules isn't yet completed. -- Solved.
+	- Still working on call/return.
 
 5 BUG: Compilation error when compiling code emitted by emit_jail(). -- Solved.
 	Comment: There's something wrong going on with the BasicBlocks used by this
